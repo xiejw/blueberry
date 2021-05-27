@@ -52,6 +52,16 @@ error_t _bbDenseGrads(void *self, const struct bb_context_t *ctx,
   return OK;
 }
 
+error_t _bbDenseInit(void *self, const struct bb_context_t *ctx) {
+  // struct bb_dense_layer_t *this = self;
+  // struct vm_t *vm = ctx->vm;
+  // const struct bb_dense_config_t *cfg = &this->config;
+  // int has_bias = cfg->has_bias;
+
+  // TODO init the weights and logits.
+
+  return OK;
+}
 error_t _bbDenseRelease(void *self, const struct bb_context_t *ctx) {
   struct bb_dense_layer_t *this = self;
   struct vm_t *vm = ctx->vm;
@@ -62,7 +72,7 @@ error_t _bbDenseRelease(void *self, const struct bb_context_t *ctx) {
   for (int i = 0; i < size; i++) {
     err = vmTensorFree(vm, tds[i]);
     if (err) {
-      return errEmitNote("failed to release internal tensor");
+      return errEmitNote("failed to release internal logit tensor");
     }
   }
   vecFree(tds);
