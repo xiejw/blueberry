@@ -3,6 +3,21 @@
 #include <assert.h>
 #include <string.h>
 
+static error_t _bbInitTensor(struct vm_t *vm, int td, int mode,
+                             struct rng64_t *rng) {
+  struct opopt_t opt;
+  switch (mode) {
+  case BB_INIT_ZERO:
+    return vmExec(vm, OP_FILL, NULL, td, -1, -1);
+  case BB_INIT_STD_NORMAL:
+    opt.mode = OPT_RNG_STD_NORMAL | OPT_MODE_R_BIT;
+    opt.r = *rng;
+    return vmExec(vm, OP_RNG, &opt, td, -1, -1);
+  default:
+    return errNew("init mode is not supported: %d", mode);
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Impl for Dense.
 // -----------------------------------------------------------------------------
@@ -43,6 +58,7 @@ error_t _bbDenseGrads(void *self, const struct bb_context_t *ctx,
     vecPushBack(*tds, this->d_b);
   return OK;
 }
+
 error_t _bbDenseInit(void *self, const struct bb_context_t *ctx,
                      struct rng64_t *rng) {
   struct bb_dense_layer_t *this = self;
@@ -59,16 +75,16 @@ error_t _bbDenseInit(void *self, const struct bb_context_t *ctx,
   // stage 2: create the shapes.
   struct shape_t *sp_w = R2S(vm, cfg->input_dim, cfg->output_dim);
   int w = vmTensorNew(vm, F32, sp_w);
+  _bbInitTensor(vm, w, cfg->kernel_init, rng);
   this->w = w;
   vecPushBack(this->tds, w);
-  // TODO init
 
   if (has_bias) {
     struct shape_t *sp_b = R1S(vm, cfg->output_dim);
     int b = vmTensorNew(vm, F32, sp_b);
+    _bbInitTensor(vm, b, cfg->bias_init, rng);
     this->b = b;
     vecPushBack(this->tds, b);
-    // TODO init
   }
   return OK;
 }
