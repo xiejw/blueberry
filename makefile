@@ -1,6 +1,8 @@
 EVA_PATH        = ../eva
 EVA_LIB         = ${EVA_PATH}/.build_release/libeva.a
 
+MLVM_PATH        = ../mlvm
+
 include ${EVA_PATH}/eva.mk
 
 # ------------------------------------------------------------------------------
@@ -9,37 +11,19 @@ include ${EVA_PATH}/eva.mk
 
 SRC             =  src
 CMD             =  cmd
-CFLAGS          += -I${SRC}
+FMT_FOLDERS     =  ${SRC} ${CMD}  # required by eva.mk
 
-#FMT_FOLDERS     =  ${SRC} ${CMD}  # required by eva.mk
-FMT_FOLDERS     =  ${CMD}  # required by eva.mk
-
-CFLAGS          += -I${EVA_PATH}/src -g
+CFLAGS          += -I${SRC} -I${EVA_PATH}/src -I${MLVM_PATH}/src -g
 LDFLAGS         += ${EVA_LIB}
 
 # ------------------------------------------------------------------------------
 # Libs.
 # ------------------------------------------------------------------------------
-VM_HEADER       = ${SRC}/vm.h ${SRC}/op.h
-#VM_LIB          = ${BUILD}/vm_vm.o ${BUILD}/vm_shape.o ${BUILD}/vm_tensor.o \
-#                  ${BUILD}/vm_primitives.o
-VM_LIB          =
+BB_HEADER       = ${SRC}/bb.h
+#BB_LIB          = ${BUILD}/vm_vm.o
+BB_LIB =
 
-ALL_LIBS        = ${VM_LIB}
-
-ifdef BLIS
-CFLAGS  += -DBLIS=1 -I../blis/include/${BLIS}/ -Wno-unused-function
-LDFLAGS += ../blis/lib/${BLIS}/libblis.a -pthread
-endif
-
-# ------------------------------------------------------------------------------
-# Header Deps.
-# ------------------------------------------------------------------------------
-${BUILD}/vm_vm.o: ${SRC}/primitives.h ${SRC}/vm_internal.h
-
-${BUILD}/vm_tensor.o: ${SRC}/vm_internal.h
-
-${BUILD}/vm_primitives.o: ${SRC}/primitives.h
+ALL_LIBS        = ${BB_LIB}
 
 # ------------------------------------------------------------------------------
 # Actions.
@@ -49,7 +33,7 @@ ${BUILD}/vm_primitives.o: ${SRC}/primitives.h
 
 compile: ${BUILD} ${ALL_LIBS}
 
-${BUILD}/vm_%.o: ${SRC}/%.c ${VM_HEADER}
+${BUILD}/vm_%.o: ${SRC}/%.c ${BB_HEADER}
 	${EVA_CC} -o $@ -c $<
 
 # ------------------------------------------------------------------------------
@@ -63,5 +47,5 @@ CMD_TARGETS     = $(patsubst ${CMD}/%/main.c,${BUILD}/%,$(wildcard ${CMD}/*/main
 
 compile: ${CMD_TARGETS}
 
-$(foreach cmd,$(CMDS),$(eval $(call objs,$(cmd),$(BUILD),$(VM_LIB))))
+$(foreach cmd,$(CMDS),$(eval $(call objs,$(cmd),$(BUILD),$(BB_LIB))))
 
