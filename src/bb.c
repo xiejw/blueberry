@@ -31,9 +31,25 @@ _bbAllocateTensor(struct vm_t *vm, struct shape_t *sp, vec_t(int) * tds)
         return td;
 }
 
+#define DECLARE_LAYER_METHODS(name)                                           \
+        static error_t _bb##name##Weights(                                    \
+            void *self, const struct bb_context_t *ctx, vec_t(int) * tds);    \
+        static error_t _bb##name##Grads(                                      \
+            void *self, const struct bb_context_t *ctx, vec_t(int) * tds);    \
+        static error_t _bb##name##Init(                                       \
+            void *self, const struct bb_context_t *ctx, struct rng64_t *rng); \
+        static error_t _bb##name##Release(void *                     self,    \
+                                          const struct bb_context_t *ctx);    \
+        static error_t _bb##name##Jit(                                        \
+            void *self, const struct bb_context_t *ctx,                       \
+            struct bb_program_t *p, int direction, const vec_t(int) inputs,   \
+            vec_t(int) * *outputs)
+
 // -----------------------------------------------------------------------------
 // Impl for Dense.
 // -----------------------------------------------------------------------------
+DECLARE_LAYER_METHODS(Dense);
+
 error_t
 bbDenseLayer(struct vm_t *vm, const struct bb_dense_config_t *cfg,
              struct bb_layer_t **out)
@@ -52,7 +68,14 @@ bbDenseLayer(struct vm_t *vm, const struct bb_dense_config_t *cfg,
         memset(l, 0, sizeof(struct bb_dense_layer_t));
         l->config = *cfg;
 
-        //*out = (strl;
+        struct bb_layer_t *layer = malloc(sizeof(struct bb_layer_t));
+        layer->init              = _bbDenseInit;
+        layer->release           = _bbDenseRelease;
+        layer->weights           = _bbDenseWeights;
+        layer->grads             = _bbDenseGrads;
+        layer->jit               = _bbDenseJit;
+
+        *out = layer;
         return OK;
 }
 
