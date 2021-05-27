@@ -1,7 +1,7 @@
 EVA_PATH        = ../eva
 EVA_LIB         = ${EVA_PATH}/.build_release/libeva.a
 
-MLVM_PATH        = ../mlvm
+MLVM_PATH       = ../mlvm
 
 include ${EVA_PATH}/eva.mk
 
@@ -20,8 +20,7 @@ LDFLAGS         += ${EVA_LIB}
 # Libs.
 # ------------------------------------------------------------------------------
 BB_HEADER       = ${SRC}/bb.h
-#BB_LIB          = ${BUILD}/vm_vm.o
-BB_LIB =
+BB_LIB          = ${BUILD}/bb_bb.o
 
 ALL_LIBS        = ${BB_LIB}
 
@@ -33,7 +32,7 @@ ALL_LIBS        = ${BB_LIB}
 
 compile: ${BUILD} ${ALL_LIBS}
 
-${BUILD}/vm_%.o: ${SRC}/%.c ${BB_HEADER}
+${BUILD}/bb_%.o: ${SRC}/%.c ${BB_HEADER}
 	${EVA_CC} -o $@ -c $<
 
 # ------------------------------------------------------------------------------

@@ -22,7 +22,7 @@ struct bb_context_t {
 };
 
 struct bb_layer_t {
-  error_t (*init)(void *, const struct bb_context_t *, int both_direction);
+  error_t (*init)(void *, const struct bb_context_t *);
   error_t (*release)(void *, const struct bb_context_t *);
   error_t (*states)(void *, const struct bb_context_t *, vec_t(int) * tds);
   error_t (*jit)(void *, const struct bb_context_t *, struct bb_program_t *,
@@ -33,7 +33,7 @@ struct bb_layer_t {
 // Dense layer.
 // -----------------------------------------------------------------------------
 
-#define BB_ACTN_NO 0
+#define BB_ACTN_NONE 0
 #define BB_ACTN_RELU 1
 
 struct bb_dense_config_t {
@@ -50,7 +50,7 @@ struct bb_dense_layer_t {
 };
 
 error_t bbDenseLayer(struct vm_t *, const struct bb_dense_config_t *,
-                     struct bb_layer_t *);
+                     struct bb_layer_t **);
 
 // -----------------------------------------------------------------------------
 // Softmax Crossentropy Loss Layer.
@@ -69,6 +69,6 @@ struct bb_scel_layer_t {
 };
 
 error_t bbSCELLayer(struct vm_t *, const struct bb_scel_config_t *,
-                    struct bb_layer_t *);
+                    struct bb_layer_t **);
 
 #endif
