@@ -4,7 +4,7 @@
 #include <string.h>
 
 // -----------------------------------------------------------------------------
-// Impl.
+// Impl for Dense.
 // -----------------------------------------------------------------------------
 error_t bbDenseLayer(struct vm_t *vm, const struct bb_dense_config_t *cfg,
                      struct bb_layer_t **out) {
@@ -24,6 +24,55 @@ error_t bbDenseLayer(struct vm_t *vm, const struct bb_dense_config_t *cfg,
   return OK;
 }
 
+error_t _bbDenseWeights(void *self, const struct bb_context_t *ctx,
+                        vec_t(int) * tds) {
+  struct bb_dense_layer_t *this = self;
+  const struct bb_dense_config_t *cfg = &this->config;
+  vec_t(int) weights = vecNew();
+  vecReserve(weights, 2);
+  vecPushBack(weights, this->w);
+  if (cfg->has_bias)
+    vecPushBack(weights, this->b);
+
+  *tds = weights;
+  return OK;
+}
+
+error_t _bbDenseGrads(void *self, const struct bb_context_t *ctx,
+                      vec_t(int) * tds) {
+  struct bb_dense_layer_t *this = self;
+  const struct bb_dense_config_t *cfg = &this->config;
+  vec_t(int) weights = vecNew();
+  vecReserve(weights, 2);
+  vecPushBack(weights, this->d_w);
+  if (cfg->has_bias)
+    vecPushBack(weights, this->d_b);
+
+  *tds = weights;
+  return OK;
+}
+
+error_t _bbDenseRelease(void *self, const struct bb_context_t *ctx) {
+  struct bb_dense_layer_t *this = self;
+  struct vm_t *vm = ctx->vm;
+
+  vec_t(int) tds = this->tds;
+  int size = vecSize(tds);
+  error_t err;
+  for (int i = 0; i < size; i++) {
+    err = vmTensorFree(vm, tds[i]);
+    if (err) {
+      return errEmitNote("failed to release internal tensor");
+    }
+  }
+  vecFree(tds);
+  this->tds = vecNew();
+  return OK;
+}
+
+// -----------------------------------------------------------------------------
+// Impl for SCEL.
+// -----------------------------------------------------------------------------
 error_t bbSCELLayer(struct vm_t *vm, const struct bb_scel_config_t *cfg,
                     struct bb_layer_t **out) {
   // error checks.

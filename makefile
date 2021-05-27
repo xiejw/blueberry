@@ -2,6 +2,7 @@ EVA_PATH        = ../eva
 EVA_LIB         = ${EVA_PATH}/.build_release/libeva.a
 
 MLVM_PATH       = ../mlvm
+MLVM_LIB        = ${MLVM_PATH}/.build_release/libmlvm.a
 
 include ${EVA_PATH}/eva.mk
 
@@ -14,7 +15,7 @@ CMD             =  cmd
 FMT_FOLDERS     =  ${SRC} ${CMD}  # required by eva.mk
 
 CFLAGS          += -I${SRC} -I${EVA_PATH}/src -I${MLVM_PATH}/src -g
-LDFLAGS         += ${EVA_LIB}
+LDFLAGS         += ${MLVM_LIB} ${EVA_LIB}
 
 # ------------------------------------------------------------------------------
 # Libs.

@@ -46,6 +46,7 @@ struct bb_dense_config_t {
 
 struct bb_dense_layer_t {
   struct bb_dense_config_t config;
+  vec_t(int) tds; // all tensor handles allocated (both weights and logits).
 
   // weights
   int w; // kernel
