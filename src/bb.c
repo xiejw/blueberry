@@ -3,6 +3,9 @@
 #include <assert.h>
 #include <string.h>
 
+// -----------------------------------------------------------------------------
+// Helper.
+// -----------------------------------------------------------------------------
 static error_t
 _bbInitTensor(struct vm_t *vm, int td, int mode, struct rng64_t *rng)
 {
@@ -17,6 +20,15 @@ _bbInitTensor(struct vm_t *vm, int td, int mode, struct rng64_t *rng)
         default:
                 return errNew("init mode is not supported: %d", mode);
         }
+}
+
+static inline int
+_bbAllocateTensor(struct vm_t *vm, struct shape_t *sp, vec_t(int) * tds)
+{
+        int td = vmTensorNew(vm, F32, sp);
+
+        vecPushBack(*tds, td);
+        return td;
 }
 
 // -----------------------------------------------------------------------------
@@ -168,21 +180,34 @@ _bbDenseJit(void *self, const struct bb_context_t *ctx, struct bb_program_t *p,
                 bs = sp_x->dims[0];
         }
 
-        // stage 2: create the shapes and tensors for intermediate values (iv).
-        //
+        // stage 2: allocate intermediate values (iv).
         if (direction == BB_FORWARD) {
                 struct shape_t *sp_h = R2S(vm, bs, cfg->output_dim);
-                this->h              = vmTensorNew(vm, F32, sp_h);
-                vecPushBack(this->tds, this->h);
-                if (has_bias) {
-                        this->hb = vmTensorNew(vm, F32, sp_h);
-                        vecPushBack(this->tds, this->hb);
-                }
+
+                this->h = _bbAllocateTensor(vm, sp_h, &this->tds);
+
+                if (has_bias)
+                        this->hb = _bbAllocateTensor(vm, sp_h, &this->tds);
+
+                if (has_relu) this->y = _bbAllocateTensor(vm, sp_h, &this->tds);
+
+        } else {
+                struct shape_t *sp_h = R2S(vm, bs, cfg->output_dim);
+                struct shape_t *sp_b = R1S(vm, cfg->output_dim);
+                struct shape_t *sp_w = R2S(vm, cfg->input_dim, cfg->output_dim);
+                struct shape_t *sp_x = R2S(vm, bs, cfg->input_dim);
                 if (has_relu) {
-                        this->z = vmTensorNew(vm, F32, sp_h);
-                        vecPushBack(this->tds, this->z);
+                        this->state = _bbAllocateTensor(vm, sp_h, &this->tds);
+                        this->d_hb  = _bbAllocateTensor(vm, sp_h, &this->tds);
                 }
+                if (has_bias) {
+                        this->d_b = _bbAllocateTensor(vm, sp_b, &this->tds);
+                }
+                this->d_w = _bbAllocateTensor(vm, sp_w, &this->tds);
+                this->d_x = _bbAllocateTensor(vm, sp_x, &this->tds);
         }
+
+        // stage 3: jit
 
         return OK;
 }

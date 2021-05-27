@@ -66,8 +66,8 @@ struct bb_dense_layer_t {
         int b;  // bias. 0 means absent.
 
         // iv
-        int h, hb, z, o;                 // forward
-        int state, d_hb, d_b, d_w, d_i;  // backward
+        int h, hb, y;                    // forward
+        int state, d_hb, d_b, d_w, d_x;  // backward
 };
 
 error_t bbDenseLayer(struct vm_t *, const struct bb_dense_config_t *,
