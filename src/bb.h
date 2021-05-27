@@ -23,6 +23,9 @@ struct bb_context_t {
   int is_training;
 };
 
+#define BB_FORWARD 0
+#define BB_BACKWARD 1
+
 struct bb_layer_t {
   error_t (*weights)(void *, const struct bb_context_t *, vec_t(int) * tds);
   error_t (*grads)(void *, const struct bb_context_t *, vec_t(int) * tds);
@@ -54,13 +57,13 @@ struct bb_dense_config_t {
 
 struct bb_dense_layer_t {
   struct bb_dense_config_t config;
-  vec_t(int) tds; // all tensor handles allocated (both weights and logits).
+  vec_t(int) tds; // all tensor handles allocated (both weights and iv).
 
   // weights
   int w; // kernel
   int b; // bias. 0 means absent.
 
-  // logits
+  // iv
   int h, hb, z, o;                // forward
   int state, d_hb, d_b, d_w, d_i; // backward
 };

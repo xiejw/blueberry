@@ -89,38 +89,6 @@ error_t _bbDenseInit(void *self, const struct bb_context_t *ctx,
   return OK;
 }
 
-// error_t _bbDenseJitAndInit(void *self, const struct bb_context_t *ctx,
-//                           struct bb_program_t * p, int direction,
-//                           const vec_t(int) inputs, vec_t(int) * *outputs) {
-//   struct bb_dense_layer_t *this = self;
-//   struct vm_t *vm = ctx->vm;
-//   const struct bb_dense_config_t *cfg = &this->config;
-//   int has_bias = cfg->has_bias;
-//
-//   // stage 1: error check
-//
-//   // stage 1: create the shapes.
-//   struct shape_t *sp_w = R2S(vm, cfg->input_dim, cfg->output_dim);
-//   struct shape_t *sp_h1 = R2S(vm, bs, h1_s);
-//   struct shape_t *sp_b1 = R1S(vm, h1_s);
-//   struct shape_t *sp_w2 = R2S(vm, h1_s, h2_s);
-//   struct shape_t *sp_h2 = R2S(vm, bs, h2_s);
-//   struct shape_t *sp_b2 = R1S(vm, h2_s);
-//   struct shape_t *sp_w3 = R2S(vm, h2_s, ls);
-//
-//   int x = vmTensorNew(vm, F32, sp_x);
-//   int y = vmTensorNew(vm, F32, sp_y);
-//   int z = vmTensorNew(vm, F32, sp_scalar);
-//   int w1 = vmTensorNew(vm, F32, sp_w1);
-//   int h1 = vmTensorNew(vm, F32, sp_h1);
-//   int b1 = vmTensorNew(vm, F32, sp_b1);
-//   int h1b = vmTensorNew(vm, F32, sp_h1);
-//   int z1 = vmTensorNew(vm, F32, sp_h1);
-//
-//   // TODO init the weights and logits.
-//
-//   return OK;
-// }
 error_t _bbDenseRelease(void *self, const struct bb_context_t *ctx) {
   struct bb_dense_layer_t *this = self;
   struct vm_t *vm = ctx->vm;
@@ -136,6 +104,67 @@ error_t _bbDenseRelease(void *self, const struct bb_context_t *ctx) {
   }
   vecFree(tds);
   this->tds = vecNew();
+  return OK;
+}
+
+error_t _bbDenseJit(void *self, const struct bb_context_t *ctx,
+                    struct bb_program_t *p, int direction,
+                    const vec_t(int) inputs, vec_t(int) * *outputs) {
+
+  error_t err;
+  struct bb_dense_layer_t *this = self;
+  struct vm_t *vm = ctx->vm;
+  const struct bb_dense_config_t *cfg = &this->config;
+  int has_bias = cfg->bias_init != BB_INIT_NULL;
+  int has_relu = cfg->actn == BB_ACTN_RELU;
+
+  assert(cfg->actn == BB_ACTN_NONE || cfg->actn == BB_ACTN_RELU);
+  assert(direction == BB_FORWARD || direction == BB_BACKWARD);
+
+  // stage 1: error check and retrieve the batch size.
+  if (vecSize(inputs) != 1)
+    return errNew("expect one input for dense layer. got %d", vecSize(inputs));
+
+  int bs;
+  {
+    struct shape_t *sp_x;
+    // checks the shape of input and gets the batch size.
+    err = vmTensorInfo(vm, inputs[0], /*dtype=*/NULL, &sp_x);
+    if (err)
+      return errEmitNote("failed to grab the input shape.");
+    if (sp_x->rank != 2)
+      return errNew("expect rank 2 input for dense layer. got %d", sp_x->rank);
+
+    if (direction == BB_FORWARD) {
+      if (sp_x->dims[1] != cfg->input_dim)
+        return errNew("expect input.dims[1] == cfg.input_dim for dense layer. "
+                      "got %d vs %d",
+                      sp_x->dims[1], cfg->input_dim);
+    } else {
+      if (sp_x->dims[1] != cfg->output_dim)
+        return errNew("expect (grad)input.dims[1] == cfg.output_dim for dense "
+                      "layer. got %d vs %d",
+                      sp_x->dims[1], cfg->output_dim);
+    }
+    bs = sp_x->dims[0];
+  }
+
+  // stage 2: create the shapes and tensors for intermediate values (iv).
+  //
+  if (direction == BB_FORWARD) {
+    struct shape_t *sp_h = R2S(vm, bs, cfg->output_dim);
+    this->h = vmTensorNew(vm, F32, sp_h);
+    vecPushBack(this->tds, this->h);
+    if (has_bias) {
+      this->hb = vmTensorNew(vm, F32, sp_h);
+      vecPushBack(this->tds, this->hb);
+    }
+    if (has_relu) {
+      this->z = vmTensorNew(vm, F32, sp_h);
+      vecPushBack(this->tds, this->z);
+    }
+  }
+
   return OK;
 }
 
