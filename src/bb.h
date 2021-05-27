@@ -24,7 +24,8 @@ struct bb_context_t {
 struct bb_layer_t {
   error_t (*init)(void *, const struct bb_context_t *);
   error_t (*release)(void *, const struct bb_context_t *);
-  error_t (*states)(void *, const struct bb_context_t *, vec_t(int) * tds);
+  error_t (*weights)(void *, const struct bb_context_t *, vec_t(int) * tds);
+  error_t (*grads)(void *, const struct bb_context_t *, vec_t(int) * tds);
   error_t (*jit)(void *, const struct bb_context_t *, struct bb_program_t *,
                  int direction, const vec_t(int) inputs, vec_t(int) * *outputs);
 };
@@ -45,8 +46,14 @@ struct bb_dense_config_t {
 
 struct bb_dense_layer_t {
   struct bb_dense_config_t config;
+
+  // weights
   int w; // kernel
-  int b; // bias. -1 means absent.
+  int b; // bias. 0 means absent.
+
+  // logits
+  int h, hb, z, o;                // forward
+  int state, d_hb, d_b, d_w, d_i; // backward
 };
 
 error_t bbDenseLayer(struct vm_t *, const struct bb_dense_config_t *,

@@ -1,6 +1,7 @@
 #include "bb.h"
 
 #include <assert.h>
+#include <string.h>
 
 // -----------------------------------------------------------------------------
 // Impl.
@@ -15,6 +16,11 @@ error_t bbDenseLayer(struct vm_t *vm, const struct bb_dense_config_t *cfg,
   if (!(cfg->actn == BB_ACTN_NONE || cfg->actn == BB_ACTN_RELU))
     return errNew("acvn must be NONE or RELU; got %d", cfg->actn);
 
+  struct bb_dense_layer_t *l = malloc(sizeof(struct bb_dense_layer_t));
+  memset(l, 0, sizeof(struct bb_dense_layer_t));
+  l->config = *cfg;
+
+  //*out = (strl;
   return OK;
 }
 
