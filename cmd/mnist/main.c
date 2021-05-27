@@ -3,4 +3,8 @@
 // bb
 #include "bb.h"
 
-int main() { printf("hello bb.\n"); }
+int
+main()
+{
+        printf("hello bb.\n");
+}
