@@ -35,7 +35,7 @@ struct bb_context_t {
 #define BB_BACKWARD 1
 
 struct bb_layer_t {
-        error_t (*init)(void *, const struct bb_context_t *, struct rng64_t *);
+        error_t (*init)(void *, const struct bb_context_t *, struct srng64_t *);
         error_t (*release)(void *, const struct bb_context_t *);
 
         error_t (*weights)(void *, const struct bb_context_t *,
@@ -67,9 +67,15 @@ struct bb_dense_config_t {
         int actn;
 };
 
-struct bb_dense_layer_t {
-        struct bb_dense_config_t config;
+struct bb_base_layer_t {
         vec_t(int) tds;  // all tensor handles allocated (both weights and iv).
+        struct vm_t *vm;
+};
+
+struct bb_dense_layer_t {
+        struct bb_base_layer_t base;
+
+        struct bb_dense_config_t config;
 
         // weights
         int w;  // kernel
