@@ -28,10 +28,10 @@ _bbInitTensor(struct vm_t *vm, int td, int mode, struct srng64_t *rng)
 }
 
 static inline int
-_bbAllocateTensor(struct bb_base_layer_t *this, struct shape_t *sp)
+_bbAllocateIntermediaValue(struct bb_base_layer_t *this, struct shape_t *sp)
 {
         int td = vmTensorNew(this->vm, F32, sp);
-        vecPushBack(this->tds, td);
+        vecPushBack(this->ivs, td);
         return td;
 }
 
@@ -97,9 +97,8 @@ bbDenseLayer(struct vm_t *vm, const struct bb_dense_config_t *cfg,
         struct bb_dense_layer_t *l = malloc(sizeof(struct bb_dense_layer_t));
 
         memset(l, 0, sizeof(struct bb_dense_layer_t));
-        l->base.tds = vecNew();
-        l->base.vm  = vm;
-        l->config   = *cfg;
+        l->base.vm = vm;
+        l->config  = *cfg;
 
         struct bb_layer_t *layer = malloc(sizeof(struct bb_layer_t));
         layer->init              = _bbDenseInit;
@@ -115,20 +114,22 @@ bbDenseLayer(struct vm_t *vm, const struct bb_dense_config_t *cfg,
 error_t
 _bbDenseWeights(void *self, const struct bb_context_t *ctx, vec_t(int) * tds)
 {
-        struct bb_dense_layer_t *this       = self;
-        const struct bb_dense_config_t *cfg = &this->config;
-        vecPushBack(*tds, this->w);
-        if (cfg->bias_init != BB_INIT_NULL) vecPushBack(*tds, this->b);
+        struct bb_base_layer_t *this = self;
+        int old_size                 = vecSize(*tds);
+        int inc                      = vecSize(this->weights);
+        vecReserve(*tds, old_size + inc);
+        memcpy(tds + old_size, this->weights, sizeof(int) * inc);
         return OK;
 }
 
 error_t
 _bbDenseGrads(void *self, const struct bb_context_t *ctx, vec_t(int) * tds)
 {
-        struct bb_dense_layer_t *this       = self;
-        const struct bb_dense_config_t *cfg = &this->config;
-        vecPushBack(*tds, this->d_w);
-        if (cfg->bias_init != BB_INIT_NULL) vecPushBack(*tds, this->d_b);
+        struct bb_base_layer_t *this = self;
+        int old_size                 = vecSize(*tds);
+        int inc                      = vecSize(this->grads);
+        vecReserve(*tds, old_size + inc);
+        memcpy(tds + old_size, this->grads, sizeof(int) * inc);
         return OK;
 }
 
@@ -139,6 +140,7 @@ _bbDenseInit(void *self, const struct bb_context_t *ctx, struct srng64_t *rng)
         struct vm_t *                   vm  = ctx->vm;
         const struct bb_dense_config_t *cfg = &this->config;
         int has_bias                        = cfg->bias_init != BB_INIT_NULL;
+        int is_training                     = ctx->is_training;
 
         // stage 1: error check
         if (!(cfg->kernel_init > BB_INIT_NULL &&
@@ -152,39 +154,58 @@ _bbDenseInit(void *self, const struct bb_context_t *ctx, struct srng64_t *rng)
 
         // stage 2: create the shapes.
         struct shape_t *sp_w = R2S(vm, cfg->input_dim, cfg->output_dim);
-        int             w    = vmTensorNew(vm, F32, sp_w);
-        _bbInitTensor(vm, w, cfg->kernel_init, rng);
-        this->w = w;
-        vecPushBack(this->base.tds, w);
+
+#define ALLOC_STATE(name, sp, collection)         \
+        int name = vmTensorNew(vm, F32, sp);      \
+        vecPushBack(this->base.collection, name); \
+        this->name = name;
+
+        ALLOC_STATE(w, sp_w, weights);
+        _bbInitTensor(vm, this->w, cfg->kernel_init, rng);
+        if (is_training) {
+                ALLOC_STATE(d_w, sp_w, grads);
+        }
 
         if (has_bias) {
                 struct shape_t *sp_b = R1S(vm, cfg->output_dim);
-                int             b    = vmTensorNew(vm, F32, sp_b);
+                ALLOC_STATE(b, sp_b, weights);
                 _bbInitTensor(vm, b, cfg->bias_init, rng);
-                this->b = b;
-                vecPushBack(this->base.tds, b);
+
+                if (is_training) {
+                        ALLOC_STATE(d_b, sp_b, grads);
+                }
         }
+
+#undef ALLOC_STATE
         return OK;
 }
 
 error_t
 _bbDenseRelease(void *self, const struct bb_context_t *ctx)
 {
-        struct bb_dense_layer_t *this = self;
-        struct vm_t *vm               = ctx->vm;
+        struct bb_base_layer_t *this = self;
+        struct vm_t *vm              = ctx->vm;
 
-        vec_t(int) tds = this->base.tds;
-        int     size   = vecSize(tds);
-        error_t err;
-        for (int i = 0; i < size; i++) {
-                err = vmTensorFree(vm, tds[i]);
-                if (err) {
-                        return errEmitNote(
-                            "failed to release internal logit tensor");
-                }
+#define RELEAE_TDS(tds)                                          \
+        {                                                        \
+                vec_t(int) handles = (tds);                      \
+                int     size       = vecSize(handles);           \
+                error_t err;                                     \
+                for (int i = 0; i < size; i++) {                 \
+                        err = vmTensorFree(vm, handles[i]);      \
+                        if (err) {                               \
+                                return errEmitNote(              \
+                                    "failed to release tensor"); \
+                        }                                        \
+                }                                                \
+                vecFree(handles);                                \
+                (tds) = vecNew();                                \
         }
-        vecFree(tds);
-        this->base.tds = vecNew();
+
+        RELEAE_TDS((this->weights));
+        RELEAE_TDS((this->grads));
+        RELEAE_TDS((this->ivs));
+#undef RELEAE_TDS
         return OK;
 }
 
@@ -236,30 +257,22 @@ _bbDenseJit(void *self, const struct bb_context_t *ctx, struct bb_program_t *p,
                 bs = sp_x->dims[0];
         }
 
-#define ALLOC_T(sp) _bbAllocateTensor((struct bb_base_layer_t *)this, (sp))
+#define ALLOC_T(sp) \
+        _bbAllocateIntermediaValue((struct bb_base_layer_t *)this, (sp))
 
         // stage 2: allocate intermediate values (iv).
+        struct shape_t *sp_h = R2S(vm, bs, cfg->output_dim);
         if (direction == BB_FORWARD) {
-                struct shape_t *sp_h = R2S(vm, bs, cfg->output_dim);
-
                 this->h = ALLOC_T(sp_h);
                 if (has_bias) this->hb = ALLOC_T(sp_h);
                 if (has_relu) this->y = ALLOC_T(sp_h);
 
         } else {
                 if (has_relu) {
-                        struct shape_t *sp_h = R2S(vm, bs, cfg->output_dim);
-                        this->state          = ALLOC_T(sp_h);
-                        this->d_hb           = ALLOC_T(sp_h);
+                        this->state = ALLOC_T(sp_h);
+                        this->d_hb  = ALLOC_T(sp_h);
                 }
-                if (has_bias) {
-                        struct shape_t *sp_b = R1S(vm, cfg->output_dim);
-                        this->d_b            = ALLOC_T(sp_b);
-                }
-
-                struct shape_t *sp_w = R2S(vm, cfg->input_dim, cfg->output_dim);
                 struct shape_t *sp_x = R2S(vm, bs, cfg->input_dim);
-                this->d_w            = ALLOC_T(sp_w);
                 this->d_x            = ALLOC_T(sp_x);
         }
 

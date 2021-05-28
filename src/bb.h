@@ -68,7 +68,9 @@ struct bb_dense_config_t {
 };
 
 struct bb_base_layer_t {
-        vec_t(int) tds;  // all tensor handles allocated (both weights and iv).
+        vec_t(int) weights;
+        vec_t(int) grads;
+        vec_t(int) ivs;  // all tensor handles allocated (both weights and iv).
         struct vm_t *vm;
 };
 
