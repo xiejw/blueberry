@@ -119,6 +119,7 @@ _bbDenseWeights(void *self, const struct bb_context_t *ctx, vec_t(int) * tds)
         int inc                      = vecSize(this->weights);
         vecReserve(*tds, old_size + inc);
         memcpy(tds + old_size, this->weights, sizeof(int) * inc);
+        vecSetSize(*tds, old_size + inc);
         return OK;
 }
 
@@ -130,6 +131,7 @@ _bbDenseGrads(void *self, const struct bb_context_t *ctx, vec_t(int) * tds)
         int inc                      = vecSize(this->grads);
         vecReserve(*tds, old_size + inc);
         memcpy(tds + old_size, this->grads, sizeof(int) * inc);
+        vecSetSize(*tds, old_size + inc);
         return OK;
 }
 
