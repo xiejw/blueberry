@@ -46,6 +46,32 @@ _bbAllocateTensor(struct vm_t *vm, struct shape_t *sp, vec_t(int) * tds)
             vec_t(int) * *outputs)
 
 // -----------------------------------------------------------------------------
+// Impl for Program.
+// -----------------------------------------------------------------------------
+
+struct bb_program_t *
+bbProgNew()
+{
+        struct bb_program_t *p = malloc(sizeof(struct bb_program_t));
+        if (p == NULL) return NULL;
+        p->ops = NULL;
+        return p;
+}
+
+void
+bbProgFree(struct bb_program_t *p)
+{
+        if (p == NULL) return;
+        struct bb_inst_t *next, *curr;
+        curr = p->ops;
+        while (curr != NULL) {
+                next = curr->next;
+                free(curr->op);
+                free(curr);
+                curr = next;
+        }
+}
+// -----------------------------------------------------------------------------
 // Impl for Dense.
 // -----------------------------------------------------------------------------
 DECLARE_LAYER_METHODS(Dense);

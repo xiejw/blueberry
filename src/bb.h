@@ -14,9 +14,17 @@
 
 struct vm_t *bbVmInit();  // put some preallocated tds.
 
-struct bb_program_t {
-        vec_t(struct oparg_t) ops;
+struct bb_inst_t {
+        struct oparg_t *  op;
+        struct bb_inst_t *next;
 };
+
+struct bb_program_t {
+        struct bb_inst_t *ops;
+};
+
+struct bb_program_t *bbProgNew();
+void                 bbProgFree(struct bb_program_t *);
 
 struct bb_context_t {
         struct vm_t *vm;
