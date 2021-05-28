@@ -231,7 +231,23 @@ _bbDenseJit(void *self, const struct bb_context_t *ctx, struct bb_program_t *p,
         }
 
         // stage 3: jit
-
+        //
+        // emit forward.
+        //   z[1] = zeros([1])
+        //
+        //   h [bs, out] = matmul(x[bs, in], w[in, out])
+        //   hb[bs, out] = h[bs, out] + b[out]
+        //   z [bs, out] = max(h1b[bs, out], z[1])
+        //
+        // emit backward
+        //   state         = cmpL(hb[bs, out], z[1])
+        //   d_hb[bs, out] = mul(d_z[bs, out], state)
+        //
+        //   d_h[bs, out]  = d_hb[bs, out]
+        //   d_b[out]      = sum(d_hb[bs, out], axis=1)
+        //
+        //   d_w[in, out] = matmul(x[bs, in], d_h[bs, out], trans_a)
+        //   d_x[bs, in]  = matmul(d_h[bs, out], w[h1, out] trans_b)
         return OK;
 }
 
