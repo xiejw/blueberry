@@ -54,7 +54,7 @@ cleanup:
         vecFree(inputs);
         vecFree(outputs);
         if (p) bbProgFree(p);
-        if (r) free(r);
+        if (r) srng64Free(r);
         if (dense) {
                 dense->release(dense, &ctx);
                 free(dense);
