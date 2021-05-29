@@ -47,7 +47,7 @@ struct bb_layer_t {
 
         error_t (*jit)(void *, const struct bb_context_t *,
                        struct bb_program_t *, int direction,
-                       const vec_t(int) inputs, vec_t(int) * *outputs);
+                       const vec_t(int) inputs, vec_t(int) * outputs);
 };
 
 // -----------------------------------------------------------------------------

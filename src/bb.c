@@ -47,7 +47,7 @@ _bbAllocateIntermediaValue(struct bb_base_layer_t *this, struct shape_t *sp)
         static error_t _bb##name##Jit(                                         \
             void *self, const struct bb_context_t *ctx,                        \
             struct bb_program_t *p, int direction, const vec_t(int) inputs,    \
-            vec_t(int) * *outputs)
+            vec_t(int) * outputs)
 
 // -----------------------------------------------------------------------------
 // Impl for Program.
@@ -175,7 +175,7 @@ _bbDenseInit(void *self, const struct bb_context_t *ctx, struct srng64_t *rng)
                 return errNew("bias init is out of range; got %d",
                               cfg->bias_init);
 
-        // stage 2: create the shapes.
+        // stage 2: create the shapes, weights, and grads if training.
         struct shape_t *sp_w = R2S(vm, cfg->input_dim, cfg->output_dim);
 
 #define ALLOC_STATE(name, sp, collection)         \
@@ -234,7 +234,7 @@ _bbDenseRelease(void *self, const struct bb_context_t *ctx)
 
 error_t
 _bbDenseJit(void *self, const struct bb_context_t *ctx, struct bb_program_t *p,
-            int direction, const vec_t(int) inputs, vec_t(int) * *outputs)
+            int direction, const vec_t(int) inputs, vec_t(int) * outputs)
 {
         error_t err;
         struct bb_dense_layer_t *this       = self;
@@ -308,9 +308,23 @@ _bbDenseJit(void *self, const struct bb_context_t *ctx, struct bb_program_t *p,
                 //
                 //   h [bs, out] = matmul(x[bs, in], w[in, out])
                 //   hb[bs, out] = h[bs, out] + b[out]
-                //   z [bs, out] = max(h1b[bs, out], z[1])
-                // int x =  inputs[0];
-
+                //   y [bs, out] = max(hb[bs, out], z[1])
+                int x = inputs[0];
+                bbProgAppend(
+                    p, &(struct oparg_t){OP_MATMUL, this->h, x, this->w, 0});
+                int y = this->h;
+                if (has_bias) {
+                        bbProgAppend(p, &(struct oparg_t){OP_ADD, this->hb, y,
+                                                          this->b, 0});
+                        y = this->hb;
+                }
+                if (has_relu) {
+                        bbProgAppend(p, &(struct oparg_t){OP_MAX, this->y, y,
+                                                          /*zero=*/0, 0});
+                        y = this->y;
+                }
+                vecPushBack(*outputs, y);
+                return OK;
         } else {
                 //
                 // emit backward
