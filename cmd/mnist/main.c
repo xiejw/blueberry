@@ -30,18 +30,22 @@ main()
         }
 
         r = srng64New(123);
+        p = bbProgNew();
+
+        struct shape_t* sp = R2S(vm, 32, 10);
+        int             x  = vmTensorNew(vm, F32, sp);
+        vecPushBack(p->inputs, x);
 
         err = dense->ops.init(dense, &ctx, r);
         if (err) {
                 errDump("failed to init dense layer\n");
                 goto cleanup;
         }
-
-        struct shape_t* sp = R2S(vm, 32, 10);
-        int             x  = vmTensorNew(vm, F32, sp);
-
-        p = bbProgNew();
-        vecPushBack(p->inputs, x);
+        err = dense->ops.weights(dense, &ctx, &p->weights);
+        if (err) {
+                errDump("failed to obtain dense layer weights\n");
+                goto cleanup;
+        }
 
         err = dense->ops.jit(dense, &ctx, p, BB_FORWARD, p->inputs, &outputs);
         if (err) {

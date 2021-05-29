@@ -131,8 +131,22 @@ bbProgDump(struct bb_program_t *p, sds_t *s)
                 sdsCatPrintf(s, "{  // inputs\n  ");
                 size_t size = vecSize(p->inputs);
                 if (size) {
-                        for (int i = 0; i < vecSize(p->inputs); i++) {
+                        for (int i = 0; i < size; i++) {
                                 sdsCatPrintf(s, "%3d, ", p->inputs[i]);
+                        }
+                        sdsCatPrintf(s, "\n");
+                } else {
+                        sdsCatPrintf(s, "(empty)\n");
+                }
+                sdsCatPrintf(s, "}\n");
+        }
+
+        {
+                sdsCatPrintf(s, "{  // weights\n  ");
+                size_t size = vecSize(p->weights);
+                if (size) {
+                        for (int i = 0; i < size; i++) {
+                                sdsCatPrintf(s, "%3d, ", p->weights[i]);
                         }
                         sdsCatPrintf(s, "\n");
                 } else {
@@ -231,7 +245,7 @@ _bbDenseWeights(struct bb_layer_t *this, const struct bb_context_t *ctx,
         int old_size = vecSize(*tds);
         int inc      = vecSize(this->weights);
         vecReserve(*tds, old_size + inc);
-        memcpy(tds + old_size, this->weights, sizeof(int) * inc);
+        memcpy((*tds) + old_size, this->weights, sizeof(int) * inc);
         vecSetSize(*tds, old_size + inc);
         return OK;
 }
