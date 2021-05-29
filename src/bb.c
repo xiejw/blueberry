@@ -58,7 +58,8 @@ bbProgNew()
 {
         struct bb_program_t *p = malloc(sizeof(struct bb_program_t));
         if (p == NULL) return NULL;
-        p->ops = NULL;
+        p->head = NULL;
+        p->tail = NULL;
         return p;
 }
 
@@ -67,12 +68,32 @@ bbProgFree(struct bb_program_t *p)
 {
         if (p == NULL) return;
         struct bb_inst_t *next, *curr;
-        curr = p->ops;
+        curr = p->head;
         while (curr != NULL) {
                 next = curr->next;
                 free(curr->op);
                 free(curr);
                 curr = next;
+        }
+}
+
+void
+bbProgAppend(struct bb_program_t *p, struct oparg_t *op)
+{
+        struct bb_inst_t *inst = malloc(sizeof(struct bb_inst_t));
+        inst->op               = op;
+        inst->next             = NULL;
+
+        struct bb_inst_t *tail = p->tail;
+
+        if (p->head == NULL) {
+                inst->prev = NULL;
+                p->head    = inst;
+                p->tail    = inst;
+        } else {
+                inst->prev = tail;
+                tail->next = inst;
+                p->tail    = inst;
         }
 }
 // -----------------------------------------------------------------------------
@@ -281,23 +302,27 @@ _bbDenseJit(void *self, const struct bb_context_t *ctx, struct bb_program_t *p,
 #undef ALLOC_T
 
         // stage 3: jit
-        //
-        // emit forward.
-        //   z[1] = zeros([1])
-        //
-        //   h [bs, out] = matmul(x[bs, in], w[in, out])
-        //   hb[bs, out] = h[bs, out] + b[out]
-        //   z [bs, out] = max(h1b[bs, out], z[1])
-        //
-        // emit backward
-        //   state         = cmpL(hb[bs, out], z[1])
-        //   d_hb[bs, out] = mul(d_z[bs, out], state)
-        //
-        //   d_h[bs, out]  = d_hb[bs, out]
-        //   d_b[out]      = sum(d_hb[bs, out], axis=1)
-        //
-        //   d_w[in, out] = matmul(x[bs, in], d_h[bs, out], trans_a)
-        //   d_x[bs, in]  = matmul(d_h[bs, out], w[h1, out] trans_b)
+        if (direction == BB_FORWARD) {
+                // emit forward.
+                //   z[1] = zeros([1])
+                //
+                //   h [bs, out] = matmul(x[bs, in], w[in, out])
+                //   hb[bs, out] = h[bs, out] + b[out]
+                //   z [bs, out] = max(h1b[bs, out], z[1])
+                // int x =  inputs[0];
+
+        } else {
+                //
+                // emit backward
+                //   state         = cmpL(hb[bs, out], z[1])
+                //   d_hb[bs, out] = mul(d_z[bs, out], state)
+                //
+                //   d_h[bs, out]  = d_hb[bs, out]
+                //   d_b[out]      = sum(d_hb[bs, out], axis=1)
+                //
+                //   d_w[in, out] = matmul(x[bs, in], d_h[bs, out], trans_a)
+                //   d_x[bs, in]  = matmul(d_h[bs, out], w[h1, out] trans_b)
+        }
         return OK;
 }
 
