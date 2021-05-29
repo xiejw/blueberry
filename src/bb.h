@@ -2,6 +2,7 @@
 #define BB_H_
 
 // eva
+#include "adt/sds.h"
 #include "adt/vec.h"
 #include "base/error.h"
 
@@ -28,6 +29,7 @@ struct bb_program_t {
 struct bb_program_t *bbProgNew();
 void                 bbProgFree(struct bb_program_t *);
 void                 bbProgAppend(struct bb_program_t *, struct oparg_t *);
+void                 bbProgDump(struct bb_program_t *, sds_t *);
 
 struct bb_context_t {
         int is_training;

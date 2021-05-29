@@ -14,6 +14,7 @@ main()
         struct bb_program_t* p     = NULL;
         vec_t(int) inputs          = vecNew();
         vec_t(int) outputs         = vecNew();
+        sds_t s                    = sdsEmpty();
 
         error_t err = bbDenseLayer(
             vm,
@@ -49,8 +50,12 @@ main()
                 goto cleanup;
         }
 
+        bbProgDump(p, &s);
+        printf("%s", s);
+
 cleanup:
 
+        sdsFree(s);
         vecFree(inputs);
         vecFree(outputs);
         if (p) bbProgFree(p);
