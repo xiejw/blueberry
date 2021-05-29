@@ -27,14 +27,6 @@ _bbInitTensor(struct vm_t *vm, int td, int mode, struct srng64_t *rng)
         }
 }
 
-static inline int
-_bbAllocateIntermediaValue(struct bb_layer_t *this, struct shape_t *sp)
-{
-        int td = vmTensorNew(this->vm, F32, sp);
-        vecPushBack(this->ivs, td);
-        return td;
-}
-
 #define DECLARE_LAYER_METHODS(name)                                         \
         static error_t _bb##name##Weights(struct bb_layer_t *self,          \
                                           vec_t(int) * tds);                \
@@ -145,6 +137,20 @@ bbProgDump(struct bb_program_t *p, sds_t *s)
                 if (size) {
                         for (int i = 0; i < size; i++) {
                                 sdsCatPrintf(s, "%3d, ", p->weights[i]);
+                        }
+                        sdsCatPrintf(s, "\n");
+                } else {
+                        sdsCatPrintf(s, "(empty)\n");
+                }
+                sdsCatPrintf(s, "}\n");
+        }
+
+        {
+                sdsCatPrintf(s, "{  // grads\n  ");
+                size_t size = vecSize(p->grads);
+                if (size) {
+                        for (int i = 0; i < size; i++) {
+                                sdsCatPrintf(s, "%3d, ", p->grads[i]);
                         }
                         sdsCatPrintf(s, "\n");
                 } else {
@@ -383,22 +389,27 @@ _bbDenseJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                 bs = sp_x->dims[0];
         }
 
-#define ALLOC_T(sp) _bbAllocateIntermediaValue(self, (sp))
+#define ALLOC_T(name, sp)                                    \
+        {                                                    \
+                int name = vmTensorNew(self->vm, F32, (sp)); \
+                vecPushBack(self->ivs, name);                \
+                this->name = name;                           \
+        }
 
         // stage 2: allocate intermediate values (iv).
         struct shape_t *sp_h = R2S(vm, bs, cfg->output_dim);
         if (direction == BB_FORWARD) {
-                this->h = ALLOC_T(sp_h);
-                if (has_bias) this->hb = ALLOC_T(sp_h);
-                if (has_relu) this->y = ALLOC_T(sp_h);
+                ALLOC_T(h, sp_h);
+                if (has_bias) ALLOC_T(hb, sp_h);
+                if (has_relu) ALLOC_T(y, sp_h);
 
         } else {
                 if (has_relu) {
-                        this->state = ALLOC_T(sp_h);
-                        this->d_hb  = ALLOC_T(sp_h);
+                        ALLOC_T(state, sp_h);
+                        ALLOC_T(d_hb, sp_h);
                 }
                 struct shape_t *sp_x = R2S(vm, bs, cfg->input_dim);
-                this->d_x            = ALLOC_T(sp_x);
+                ALLOC_T(d_x, sp_x);
         }
 
 #undef ALLOC_T

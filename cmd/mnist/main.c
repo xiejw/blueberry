@@ -46,6 +46,11 @@ main()
                 errDump("failed to obtain dense layer weights\n");
                 goto cleanup;
         }
+        err = dense->ops.grads(dense, &p->grads);
+        if (err) {
+                errDump("failed to obtain dense layer grads\n");
+                goto cleanup;
+        }
 
         err = dense->ops.jit(dense, &ctx, p, BB_FORWARD, p->inputs, &outputs);
         if (err) {

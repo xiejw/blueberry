@@ -10,7 +10,7 @@
 #include "vm.h"
 
 // -----------------------------------------------------------------------------
-// Layer APIs.
+// Program APIs.
 // -----------------------------------------------------------------------------
 
 struct vm_t *bbVmInit();  // put some preallocated tds.
@@ -24,6 +24,7 @@ struct bb_inst_t {
 struct bb_program_t {
         vec_t(int) inputs;
         vec_t(int) weights;
+        vec_t(int) grads;
         struct bb_inst_t *head;
         struct bb_inst_t *tail;
 };
@@ -33,14 +34,18 @@ void                 bbProgFree(struct bb_program_t *);
 void                 bbProgAppend(struct bb_program_t *, struct oparg_t *);
 void                 bbProgDump(struct bb_program_t *, sds_t *);
 
-struct bb_context_t {
-        int is_training;
-};
+// -----------------------------------------------------------------------------
+// Layer APIs.
+// -----------------------------------------------------------------------------
 
 #define BB_FORWARD  0
 #define BB_BACKWARD 1
 
 struct bb_layer_t;
+
+struct bb_context_t {
+        int is_training;
+};
 
 struct bb_layer_operations_t {
         error_t (*init)(struct bb_layer_t *, const struct bb_context_t *,
