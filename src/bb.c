@@ -45,8 +45,7 @@ _bbAllocateIntermediaValue(struct bb_layer_t *this, struct shape_t *sp)
         static error_t _bb##name##Init(struct bb_layer_t *        self,     \
                                        const struct bb_context_t *ctx,      \
                                        struct srng64_t *          rng);               \
-        static error_t _bb##name##Release(struct bb_layer_t *        self,  \
-                                          const struct bb_context_t *ctx);  \
+        static error_t _bb##name##Release(struct bb_layer_t *self);         \
         static error_t _bb##name##Jit(                                      \
             struct bb_layer_t *self, const struct bb_context_t *ctx,        \
             struct bb_program_t *p, int direction, const vec_t(int) inputs, \
@@ -96,7 +95,6 @@ bbProgFree(struct bb_program_t *p)
         curr = p->head;
         while (curr != NULL) {
                 next = curr->next;
-                free(curr->op);
                 free(curr);
                 curr = next;
         }
@@ -106,7 +104,7 @@ void
 bbProgAppend(struct bb_program_t *p, struct oparg_t *op)
 {
         struct bb_inst_t *inst = malloc(sizeof(struct bb_inst_t));
-        inst->op               = op;
+        inst->op               = *op;
         inst->next             = NULL;
 
         struct bb_inst_t *tail = p->tail;
@@ -120,6 +118,16 @@ bbProgAppend(struct bb_program_t *p, struct oparg_t *op)
                 tail->next = inst;
                 p->tail    = inst;
         }
+}
+
+// -----------------------------------------------------------------------------
+// Impl for Layer.
+// -----------------------------------------------------------------------------
+void
+bbLayerFree(struct bb_layer_t *p)
+{
+        p->ops->release(p);
+        free(p);
 }
 // -----------------------------------------------------------------------------
 // Impl for Dense.
@@ -231,7 +239,7 @@ _bbDenseInit(struct bb_layer_t *self, const struct bb_context_t *ctx,
 }
 
 error_t
-_bbDenseRelease(struct bb_layer_t *this, const struct bb_context_t *ctx)
+_bbDenseRelease(struct bb_layer_t *this)
 {
         struct vm_t *vm = this->vm;
 

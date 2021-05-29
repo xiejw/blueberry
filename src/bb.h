@@ -15,7 +15,7 @@
 struct vm_t *bbVmInit();  // put some preallocated tds.
 
 struct bb_inst_t {
-        struct oparg_t *  op;
+        struct oparg_t    op;
         struct bb_inst_t *next;
         struct bb_inst_t *prev;
 };
@@ -41,7 +41,7 @@ struct bb_layer_t;
 struct bb_layer_operations_t {
         error_t (*init)(struct bb_layer_t *, const struct bb_context_t *,
                         struct srng64_t *);
-        error_t (*release)(struct bb_layer_t *, const struct bb_context_t *);
+        error_t (*release)(struct bb_layer_t *);
 
         error_t (*weights)(struct bb_layer_t *, const struct bb_context_t *,
                            vec_t(int) * tds);

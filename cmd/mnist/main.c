@@ -55,10 +55,7 @@ cleanup:
         vecFree(outputs);
         if (p) bbProgFree(p);
         if (r) srng64Free(r);
-        if (dense) {
-                dense->ops->release(dense, &ctx);
-                free(dense);
-        };
+        if (dense) bbLayerFree(dense);
         vmFree(vm);
         return OK;
 }
