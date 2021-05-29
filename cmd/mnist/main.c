@@ -31,7 +31,7 @@ main()
 
         r = srng64New(123);
 
-        err = dense->ops->init(dense, &ctx, r);
+        err = dense->ops.init(dense, &ctx, r);
         if (err) {
                 errDump("failed to init dense layer\n");
                 goto cleanup;
@@ -43,7 +43,7 @@ main()
         p = bbProgNew();
         vecPushBack(inputs, x);
 
-        err = dense->ops->jit(dense, &ctx, p, BB_FORWARD, inputs, &outputs);
+        err = dense->ops.jit(dense, &ctx, p, BB_FORWARD, inputs, &outputs);
         if (err) {
                 errDump("failed to jit dense layer\n");
                 goto cleanup;

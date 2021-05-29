@@ -53,6 +53,17 @@ struct bb_layer_operations_t {
                        const vec_t(int) inputs, vec_t(int) * outputs);
 };
 
+struct bb_layer_t {
+        vec_t(int) weights;  // weights.
+        vec_t(int) grads;    // grads for weights in order.
+        vec_t(int) ivs;      // intermediate values.
+
+        struct vm_t *                vm;
+        struct bb_layer_operations_t ops;
+};
+
+void bbLayerFree(struct bb_layer_t *);
+
 // -----------------------------------------------------------------------------
 // Dense layer.
 // -----------------------------------------------------------------------------
@@ -72,17 +83,6 @@ struct bb_dense_config_t {
         int bias_init;  // NULL => absent
         int actn;
 };
-
-struct bb_layer_t {
-        vec_t(int) weights;  // weights.
-        vec_t(int) grads;    // grads for weights in order.
-        vec_t(int) ivs;      // intermediate values.
-
-        struct vm_t *                 vm;
-        struct bb_layer_operations_t *ops;
-};
-
-void bbLayerFree(struct bb_layer_t *);
 
 struct bb_dense_layer_t {
         struct bb_layer_t base;

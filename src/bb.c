@@ -98,6 +98,7 @@ bbProgFree(struct bb_program_t *p)
                 free(curr);
                 curr = next;
         }
+        free(p);
 }
 
 void
@@ -126,9 +127,10 @@ bbProgAppend(struct bb_program_t *p, struct oparg_t *op)
 void
 bbLayerFree(struct bb_layer_t *p)
 {
-        p->ops->release(p);
+        p->ops.release(p);
         free(p);
 }
+
 // -----------------------------------------------------------------------------
 // Impl for Dense.
 // -----------------------------------------------------------------------------
@@ -148,19 +150,17 @@ bbDenseLayer(struct vm_t *vm, const struct bb_dense_config_t *cfg,
         if (!(cfg->actn == BB_ACTN_NONE || cfg->actn == BB_ACTN_RELU))
                 return errNew("acvn must be NONE or RELU; got %d", cfg->actn);
 
-        struct bb_layer_operations_t *ops =
-            malloc(sizeof(struct bb_layer_operations_t));
-        ops->init    = _bbDenseInit;
-        ops->release = _bbDenseRelease;
-        ops->weights = _bbDenseWeights;
-        ops->grads   = _bbDenseGrads;
-        ops->jit     = _bbDenseJit;
-
         struct bb_dense_layer_t *l = malloc(sizeof(struct bb_dense_layer_t));
         memset(l, 0, sizeof(struct bb_dense_layer_t));
-        l->base.vm  = vm;
-        l->base.ops = ops;
-        l->config   = *cfg;
+        l->base.vm = vm;
+        l->config  = *cfg;
+
+        struct bb_layer_operations_t *ops = &l->base.ops;
+        ops->init                         = _bbDenseInit;
+        ops->release                      = _bbDenseRelease;
+        ops->weights                      = _bbDenseWeights;
+        ops->grads                        = _bbDenseGrads;
+        ops->jit                          = _bbDenseJit;
 
         *out = (struct bb_layer_t *)l;
         return OK;
