@@ -41,7 +41,7 @@ main()
                 errDump("failed to init dense layer\n");
                 goto cleanup;
         }
-        err = dense->ops.weights(dense, &ctx, &p->weights);
+        err = dense->ops.weights(dense, &p->weights);
         if (err) {
                 errDump("failed to obtain dense layer weights\n");
                 goto cleanup;

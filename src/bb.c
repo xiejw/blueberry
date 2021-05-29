@@ -36,11 +36,9 @@ _bbAllocateIntermediaValue(struct bb_layer_t *this, struct shape_t *sp)
 }
 
 #define DECLARE_LAYER_METHODS(name)                                         \
-        static error_t _bb##name##Weights(struct bb_layer_t *        self,  \
-                                          const struct bb_context_t *ctx,   \
+        static error_t _bb##name##Weights(struct bb_layer_t *self,          \
                                           vec_t(int) * tds);                \
-        static error_t _bb##name##Grads(struct bb_layer_t *        self,    \
-                                        const struct bb_context_t *ctx,     \
+        static error_t _bb##name##Grads(struct bb_layer_t *self,            \
                                         vec_t(int) * tds);                  \
         static error_t _bb##name##Init(struct bb_layer_t *        self,     \
                                        const struct bb_context_t *ctx,      \
@@ -239,8 +237,7 @@ bbDenseLayer(struct vm_t *vm, const struct bb_dense_config_t *cfg,
 }
 
 error_t
-_bbDenseWeights(struct bb_layer_t *this, const struct bb_context_t *ctx,
-                vec_t(int) * tds)
+_bbDenseWeights(struct bb_layer_t *this, vec_t(int) * tds)
 {
         int old_size = vecSize(*tds);
         int inc      = vecSize(this->weights);
@@ -251,13 +248,12 @@ _bbDenseWeights(struct bb_layer_t *this, const struct bb_context_t *ctx,
 }
 
 error_t
-_bbDenseGrads(struct bb_layer_t *this, const struct bb_context_t *ctx,
-              vec_t(int) * tds)
+_bbDenseGrads(struct bb_layer_t *this, vec_t(int) * tds)
 {
         int old_size = vecSize(*tds);
         int inc      = vecSize(this->grads);
         vecReserve(*tds, old_size + inc);
-        memcpy(tds + old_size, this->grads, sizeof(int) * inc);
+        memcpy((*tds) + old_size, this->grads, sizeof(int) * inc);
         vecSetSize(*tds, old_size + inc);
         return OK;
 }

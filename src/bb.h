@@ -47,10 +47,8 @@ struct bb_layer_operations_t {
                         struct srng64_t *);
         error_t (*release)(struct bb_layer_t *);
 
-        error_t (*weights)(struct bb_layer_t *, const struct bb_context_t *,
-                           vec_t(int) * tds);
-        error_t (*grads)(struct bb_layer_t *, const struct bb_context_t *,
-                         vec_t(int) * tds);
+        error_t (*weights)(struct bb_layer_t *, vec_t(int) * tds);
+        error_t (*grads)(struct bb_layer_t *, vec_t(int) * tds);
 
         error_t (*jit)(struct bb_layer_t *, const struct bb_context_t *,
                        struct bb_program_t *, int direction,
