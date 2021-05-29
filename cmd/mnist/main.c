@@ -8,7 +8,7 @@ main()
 {
         printf("hello bb.\n");
         struct vm_t*         vm    = bbVmInit();
-        struct bb_context_t  ctx   = {.vm = vm, .is_training = 1};
+        struct bb_context_t  ctx   = {.is_training = 1};
         struct srng64_t*     r     = NULL;
         struct bb_layer_t*   dense = NULL;
         struct bb_program_t* p     = NULL;
@@ -31,7 +31,7 @@ main()
 
         r = srng64New(123);
 
-        err = dense->init(dense, &ctx, r);
+        err = dense->ops->init(dense, &ctx, r);
         if (err) {
                 errDump("failed to init dense layer\n");
                 goto cleanup;
@@ -43,7 +43,7 @@ main()
         p = bbProgNew();
         vecPushBack(inputs, x);
 
-        err = dense->jit(dense, &ctx, p, BB_FORWARD, inputs, &outputs);
+        err = dense->ops->jit(dense, &ctx, p, BB_FORWARD, inputs, &outputs);
         if (err) {
                 errDump("failed to jit dense layer\n");
                 goto cleanup;
@@ -56,7 +56,7 @@ cleanup:
         if (p) bbProgFree(p);
         if (r) srng64Free(r);
         if (dense) {
-                dense->release(dense, &ctx);
+                dense->ops->release(dense, &ctx);
                 free(dense);
         };
         vmFree(vm);
