@@ -82,8 +82,7 @@ bbProgNew()
 {
         struct bb_program_t *p = malloc(sizeof(struct bb_program_t));
         if (p == NULL) return NULL;
-        p->head = NULL;
-        p->tail = NULL;
+        memset(p, 0, sizeof(struct bb_program_t));
         return p;
 }
 
@@ -98,6 +97,8 @@ bbProgFree(struct bb_program_t *p)
                 free(curr);
                 curr = next;
         }
+        vecFree(p->inputs);
+        vecFree(p->weights);
         free(p);
 }
 
@@ -125,37 +126,56 @@ void
 bbProgDump(struct bb_program_t *p, sds_t *s)
 {
         sdsCatPrintf(s, "program:\n");
-        if (p->head == NULL) {
-                sdsCatPrintf(s, "  (empty)\n");
-                return;
+
+        {
+                sdsCatPrintf(s, "{  // inputs\n  ");
+                size_t size = vecSize(p->inputs);
+                if (size) {
+                        for (int i = 0; i < vecSize(p->inputs); i++) {
+                                sdsCatPrintf(s, "%3d, ", p->inputs[i]);
+                        }
+                        sdsCatPrintf(s, "\n");
+                } else {
+                        sdsCatPrintf(s, "(empty)\n");
+                }
+                sdsCatPrintf(s, "}\n");
         }
 
-        struct bb_inst_t *curr;
-        curr = p->head;
-        while (curr != NULL) {
-                char *opname;
-                switch (curr->op.op) {
-                case OP_MATMUL:
-                        opname = "OP_MATMUL";
-                        break;
-                case OP_MUL:
-                        opname = "OP_MUL";
-                        break;
-                case OP_ADD:
-                        opname = "OP_ADD";
-                        break;
-                case OP_MAX:
-                        opname = "OP_MAX";
-                        break;
-                default:
-                        opname = "UNKNOWN";
+        {
+                sdsCatPrintf(s, "{  // ops\n");
+                if (p->head == NULL) {
+                        sdsCatPrintf(s, "  (empty)\n");
+                        return;
                 }
-                struct oparg_t *op = &curr->op;
-                sdsCatPrintf(
-                    s,
-                    "  {.op = %2d (%-9s)}, .dst = %3d, .t1 = %3d, .td = %3d\n",
-                    op->op, opname, op->dst, op->t1, op->t2);
-                curr = curr->next;
+
+                struct bb_inst_t *curr;
+                curr = p->head;
+                while (curr != NULL) {
+                        char *opname;
+                        switch (curr->op.op) {
+                        case OP_MATMUL:
+                                opname = "OP_MATMUL";
+                                break;
+                        case OP_MUL:
+                                opname = "OP_MUL";
+                                break;
+                        case OP_ADD:
+                                opname = "OP_ADD";
+                                break;
+                        case OP_MAX:
+                                opname = "OP_MAX";
+                                break;
+                        default:
+                                opname = "UNKNOWN";
+                        }
+                        struct oparg_t *op = &curr->op;
+                        sdsCatPrintf(s,
+                                     "  {.op = %2d (%-9s)}, .dst = %3d, .t1 = "
+                                     "%3d, .td = %3d\n",
+                                     op->op, opname, op->dst, op->t1, op->t2);
+                        curr = curr->next;
+                }
+                sdsCatPrintf(s, "}\n");
         }
 }
 

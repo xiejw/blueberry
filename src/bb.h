@@ -22,6 +22,8 @@ struct bb_inst_t {
 };
 
 struct bb_program_t {
+        vec_t(int) inputs;
+        vec_t(int) weights;
         struct bb_inst_t *head;
         struct bb_inst_t *tail;
 };

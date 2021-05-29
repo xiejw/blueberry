@@ -12,7 +12,6 @@ main()
         struct srng64_t*     r     = NULL;
         struct bb_layer_t*   dense = NULL;
         struct bb_program_t* p     = NULL;
-        vec_t(int) inputs          = vecNew();
         vec_t(int) outputs         = vecNew();
         sds_t s                    = sdsEmpty();
 
@@ -42,9 +41,9 @@ main()
         int             x  = vmTensorNew(vm, F32, sp);
 
         p = bbProgNew();
-        vecPushBack(inputs, x);
+        vecPushBack(p->inputs, x);
 
-        err = dense->ops.jit(dense, &ctx, p, BB_FORWARD, inputs, &outputs);
+        err = dense->ops.jit(dense, &ctx, p, BB_FORWARD, p->inputs, &outputs);
         if (err) {
                 errDump("failed to jit dense layer\n");
                 goto cleanup;
@@ -56,7 +55,6 @@ main()
 cleanup:
 
         sdsFree(s);
-        vecFree(inputs);
         vecFree(outputs);
         if (p) bbProgFree(p);
         if (r) srng64Free(r);
