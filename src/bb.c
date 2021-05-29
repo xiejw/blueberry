@@ -53,6 +53,27 @@ _bbAllocateIntermediaValue(struct bb_base_layer_t *this, struct shape_t *sp)
 // Impl for Program.
 // -----------------------------------------------------------------------------
 
+struct vm_t *
+bbVmInit()
+{
+        struct vm_t *vm = vmNew();
+        if (vm == NULL) return NULL;
+
+        struct shape_t *sp = R1S(vm, 1);
+        int             td = vmTensorNew(vm, F32, sp);
+        assert(td == 0);
+
+        error_t err = vmExec(vm, OP_FILL, NULL, td, -1, -1);
+        if (err) {
+                errFatalAndExit("init vm failed: %d", err);
+        }
+        return vm;
+}
+
+// -----------------------------------------------------------------------------
+// Impl for Program.
+// -----------------------------------------------------------------------------
+
 struct bb_program_t *
 bbProgNew()
 {

@@ -7,4 +7,8 @@ int
 main()
 {
         printf("hello bb.\n");
+        struct vm_t* vm = bbVmInit();
+
+        vmFree(vm);
+        return OK;
 }
