@@ -27,18 +27,18 @@ _bbInitTensor(struct vm_t *vm, int td, int mode, struct srng64_t *rng)
         }
 }
 
-#define DECLARE_LAYER_METHODS(name)                                         \
-        static error_t _bb##name##Weights(struct bb_layer_t *self,          \
-                                          vec_t(int) * tds);                \
-        static error_t _bb##name##Grads(struct bb_layer_t *self,            \
-                                        vec_t(int) * tds);                  \
-        static error_t _bb##name##Init(struct bb_layer_t *        self,     \
-                                       const struct bb_context_t *ctx,      \
-                                       struct srng64_t *          rng);               \
-        static error_t _bb##name##Release(struct bb_layer_t *self);         \
-        static error_t _bb##name##Jit(                                      \
-            struct bb_layer_t *self, const struct bb_context_t *ctx,        \
-            struct bb_program_t *p, int direction, const vec_t(int) inputs, \
+#define DECLARE_COMMON_METHODS()                                           \
+        static error_t _bbLayerGrads(struct bb_layer_t *, vec_t(int) *);   \
+        static error_t _bbLayerWeights(struct bb_layer_t *, vec_t(int) *); \
+        static error_t _bbLayerRelease(struct bb_layer_t *)
+
+#define DECLARE_LAYER_METHODS(name)                                        \
+        static error_t _bb##name##Init(struct bb_layer_t *,                \
+                                       const struct bb_context_t *,        \
+                                       struct srng64_t *);                 \
+        static error_t _bb##name##Jit(                                     \
+            struct bb_layer_t *, const struct bb_context_t *,              \
+            struct bb_program_t *, int direction, const vec_t(int) inputs, \
             vec_t(int) * outputs)
 
 // -----------------------------------------------------------------------------
@@ -207,6 +207,8 @@ bbLayerFree(struct bb_layer_t *p)
         free(p);
 }
 
+DECLARE_COMMON_METHODS();
+
 // -----------------------------------------------------------------------------
 // Impl for Dense.
 // -----------------------------------------------------------------------------
@@ -233,34 +235,12 @@ bbDenseLayer(struct vm_t *vm, const struct bb_dense_config_t *cfg,
 
         struct bb_layer_operations_t *ops = &l->base.ops;
         ops->init                         = _bbDenseInit;
-        ops->release                      = _bbDenseRelease;
-        ops->weights                      = _bbDenseWeights;
-        ops->grads                        = _bbDenseGrads;
+        ops->release                      = _bbLayerRelease;
+        ops->weights                      = _bbLayerWeights;
+        ops->grads                        = _bbLayerGrads;
         ops->jit                          = _bbDenseJit;
 
         *out = (struct bb_layer_t *)l;
-        return OK;
-}
-
-error_t
-_bbDenseWeights(struct bb_layer_t *this, vec_t(int) * tds)
-{
-        int old_size = vecSize(*tds);
-        int inc      = vecSize(this->weights);
-        vecReserve(*tds, old_size + inc);
-        memcpy((*tds) + old_size, this->weights, sizeof(int) * inc);
-        vecSetSize(*tds, old_size + inc);
-        return OK;
-}
-
-error_t
-_bbDenseGrads(struct bb_layer_t *this, vec_t(int) * tds)
-{
-        int old_size = vecSize(*tds);
-        int inc      = vecSize(this->grads);
-        vecReserve(*tds, old_size + inc);
-        memcpy((*tds) + old_size, this->grads, sizeof(int) * inc);
-        vecSetSize(*tds, old_size + inc);
         return OK;
 }
 
@@ -309,34 +289,6 @@ _bbDenseInit(struct bb_layer_t *self, const struct bb_context_t *ctx,
         }
 
 #undef ALLOC_STATE
-        return OK;
-}
-
-error_t
-_bbDenseRelease(struct bb_layer_t *this)
-{
-        struct vm_t *vm = this->vm;
-
-#define RELEAE_TDS(tds)                                          \
-        {                                                        \
-                vec_t(int) handles = (tds);                      \
-                int     size       = vecSize(handles);           \
-                error_t err;                                     \
-                for (int i = 0; i < size; i++) {                 \
-                        err = vmTensorFree(vm, handles[i]);      \
-                        if (err) {                               \
-                                return errEmitNote(              \
-                                    "failed to release tensor"); \
-                        }                                        \
-                }                                                \
-                vecFree(handles);                                \
-                (tds) = vecNew();                                \
-        }
-
-        RELEAE_TDS((this->weights));
-        RELEAE_TDS((this->grads));
-        RELEAE_TDS((this->ivs));
-#undef RELEAE_TDS
         return OK;
 }
 
@@ -469,5 +421,58 @@ bbSCELLayer(struct vm_t *vm, const struct bb_scel_config_t *cfg,
                 return errNew("reduction must be SUM or MEAN; got %d",
                               cfg->reduction);
 
+        return OK;
+}
+
+// -----------------------------------------------------------------------------
+// Impl for Helpers.
+// -----------------------------------------------------------------------------
+error_t
+_bbLayerWeights(struct bb_layer_t *this, vec_t(int) * tds)
+{
+        int old_size = vecSize(*tds);
+        int inc      = vecSize(this->weights);
+        vecReserve(*tds, old_size + inc);
+        memcpy((*tds) + old_size, this->weights, sizeof(int) * inc);
+        vecSetSize(*tds, old_size + inc);
+        return OK;
+}
+
+error_t
+_bbLayerGrads(struct bb_layer_t *this, vec_t(int) * tds)
+{
+        int old_size = vecSize(*tds);
+        int inc      = vecSize(this->grads);
+        vecReserve(*tds, old_size + inc);
+        memcpy((*tds) + old_size, this->grads, sizeof(int) * inc);
+        vecSetSize(*tds, old_size + inc);
+        return OK;
+}
+
+error_t
+_bbLayerRelease(struct bb_layer_t *this)
+{
+        struct vm_t *vm = this->vm;
+
+#define RELEAE_TDS(tds)                                          \
+        {                                                        \
+                vec_t(int) handles = (tds);                      \
+                int     size       = vecSize(handles);           \
+                error_t err;                                     \
+                for (int i = 0; i < size; i++) {                 \
+                        err = vmTensorFree(vm, handles[i]);      \
+                        if (err) {                               \
+                                return errEmitNote(              \
+                                    "failed to release tensor"); \
+                        }                                        \
+                }                                                \
+                vecFree(handles);                                \
+                (tds) = vecNew();                                \
+        }
+
+        RELEAE_TDS((this->weights));
+        RELEAE_TDS((this->grads));
+        RELEAE_TDS((this->ivs));
+#undef RELEAE_TDS
         return OK;
 }

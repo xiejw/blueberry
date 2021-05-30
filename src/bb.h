@@ -125,7 +125,16 @@ struct bb_scel_config_t {
 };
 
 struct bb_scel_layer_t {
+        struct bb_layer_t base;
+
         struct bb_scel_config_t config;
+
+        // iv
+        int y, o;  // forward
+        int d_x;   // backward
+
+        // other
+        int batch_size;
 };
 
 error_t bbSCELLayer(struct vm_t *, const struct bb_scel_config_t *,
