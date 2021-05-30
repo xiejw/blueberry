@@ -408,6 +408,8 @@ _bbDenseJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
 // -----------------------------------------------------------------------------
 // Impl for SCEL.
 // -----------------------------------------------------------------------------
+DECLARE_LAYER_METHODS(SCEL);
+
 error_t
 bbSCELLayer(struct vm_t *vm, const struct bb_scel_config_t *cfg,
             struct bb_layer_t **out)
@@ -421,6 +423,147 @@ bbSCELLayer(struct vm_t *vm, const struct bb_scel_config_t *cfg,
                 return errNew("reduction must be SUM or MEAN; got %d",
                               cfg->reduction);
 
+        struct bb_scel_layer_t *l = malloc(sizeof(struct bb_scel_layer_t));
+        memset(l, 0, sizeof(struct bb_scel_layer_t));
+        l->base.vm = vm;
+        l->config  = *cfg;
+
+        struct bb_layer_operations_t *ops = &l->base.ops;
+        ops->init                         = _bbSCELInit;
+        ops->release                      = _bbLayerRelease;
+        ops->weights                      = _bbLayerWeights;
+        ops->grads                        = _bbLayerGrads;
+        ops->jit                          = _bbSCELJit;
+
+        *out = (struct bb_layer_t *)l;
+        return OK;
+}
+
+error_t
+_bbSCELInit(struct bb_layer_t *self, const struct bb_context_t *ctx,
+            struct srng64_t *rng)
+{
+        // no weights/grads.
+        return OK;
+}
+
+error_t
+_bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
+           struct bb_program_t *p, int direction, const vec_t(int) inputs,
+           vec_t(int) * outputs)
+{
+        error_t err;
+        struct bb_scel_layer_t *this       = (struct bb_scel_layer_t *)self;
+        struct vm_t *                  vm  = self->vm;
+        const struct bb_scel_config_t *cfg = &this->config;
+        // int reduce_mean = cfg->reduction == BB_REDUCTION_MEAN;
+
+        assert(cfg->reduction == BB_REDUCTION_SUM ||
+               cfg->reduction == BB_REDUCTION_MEAN);
+        assert(direction == BB_FORWARD || direction == BB_BACKWARD);
+
+        // stage 1: error check and retrieve the batch size.
+        int bs;
+        {
+                if (direction == BB_FORWARD) {
+                        if (vecSize(inputs) != 2)
+                                return errNew(
+                                    "expect two inputs for scel layer. got %d",
+                                    vecSize(inputs));
+
+                        struct shape_t *sp_x;
+                        // checks the shape of input and gets the batch size.
+                        err =
+                            vmTensorInfo(vm, inputs[0], /*dtype=*/NULL, &sp_x);
+                        if (err)
+                                return errEmitNote(
+                                    "failed to grab the input shape.");
+                        if (sp_x->rank != 2)
+                                return errNew(
+                                    "expect rank 2 input for scel layer. got "
+                                    "%d",
+                                    sp_x->rank);
+
+                        if (sp_x->dims[1] != cfg->input_dim)
+                                return errNew(
+                                    "expect input[0].dims[1] == cfg.input_dim "
+                                    "for "
+                                    "scel layer. "
+                                    "got %d vs %d",
+                                    sp_x->dims[1], cfg->input_dim);
+
+                        bs               = sp_x->dims[0];
+                        this->batch_size = bs;  // recorded.
+                } else {
+                        // no way to deduce.
+                        bs = this->batch_size;
+                }
+        }
+
+#define ALLOC_T(name, sp)                                    \
+        {                                                    \
+                int name = vmTensorNew(self->vm, F32, (sp)); \
+                vecPushBack(self->ivs, name);                \
+                this->name = name;                           \
+        }
+
+        // stage 2: allocate intermediate values (iv).
+        struct shape_t *sp_y = R1S(vm, bs);
+        if (direction == BB_FORWARD) {
+                struct shape_t *sp_o = R1S(vm, 1);
+                ALLOC_T(y, sp_y);
+                ALLOC_T(o, sp_o);
+        } else {
+                struct shape_t *sp_x = R2S(vm, bs, cfg->input_dim);
+                ALLOC_T(d_y, sp_y);
+                ALLOC_T(d_x, sp_x);
+        }
+
+#undef ALLOC_T
+
+        //        // stage 3: jit
+        //        if (direction == BB_FORWARD) {
+        //                // emit forward.
+        //                //   z[1] = zeros([1])
+        //                //
+        //                //   h [bs, out] = matmul(x[bs, in], w[in, out])
+        //                //   hb[bs, out] = h[bs, out] + b[out]
+        //                //   y [bs, out] = max(hb[bs, out], z[1])
+        //                int x = inputs[0];
+        //                bbProgAppend(
+        //                    p, &(struct oparg_t){OP_MATMUL, this->h, x,
+        //                    this->w, 0});
+        //                int y = this->h;
+        //                if (has_bias) {
+        //                        bbProgAppend(p, &(struct oparg_t){OP_ADD,
+        //                        this->hb, y,
+        //                                                          this->b,
+        //                                                          0});
+        //                        y = this->hb;
+        //                }
+        //                if (has_relu) {
+        //                        bbProgAppend(p, &(struct oparg_t){OP_MAX,
+        //                        this->y, y,
+        //                                                          /*zero=*/0,
+        //                                                          0});
+        //                        y = this->y;
+        //                }
+        //                vecPushBack(*outputs, y);
+        //                return OK;
+        //        } else {
+        //                //
+        //                // emit backward
+        //                //   state         = cmpL(hb[bs, out], z[1])
+        //                //   d_hb[bs, out] = mul(d_z[bs, out], state)
+        //                //
+        //                //   d_h[bs, out]  = d_hb[bs, out]
+        //                //   d_b[out]      = sum(d_hb[bs, out], axis=1)
+        //                //
+        //                //   d_w[in, out] = matmul(x[bs, in], d_h[bs, out],
+        //                trans_a)
+        //                //   d_x[bs, in]  = matmul(d_h[bs, out], w[h1, out]
+        //                trans_b)
+        //        }
         return OK;
 }
 
