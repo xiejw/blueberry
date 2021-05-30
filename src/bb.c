@@ -415,9 +415,6 @@ bbSCELLayer(struct vm_t *vm, const struct bb_scel_config_t *cfg,
             struct bb_layer_t **out)
 {
         // error checks.
-        if (cfg->input_dim <= 0)
-                return errNew("input dim must be positive; got %d",
-                              cfg->input_dim);
         if (!(cfg->reduction == BB_REDUCTION_SUM ||
               cfg->reduction == BB_REDUCTION_MEAN))
                 return errNew("reduction must be SUM or MEAN; got %d",
@@ -462,8 +459,9 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                cfg->reduction == BB_REDUCTION_MEAN);
         assert(direction == BB_FORWARD || direction == BB_BACKWARD);
 
-        // stage 1: error check and retrieve the batch size.
+        // stage 1: error check. retrieve the batch size and input_dim;
         int bs;
+        int input_dim;
         {
                 if (direction == BB_FORWARD) {
                         if (vecSize(inputs) != 2)
@@ -474,7 +472,7 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                         struct shape_t *sp_x;
                         // checks the shape of input and gets the batch size.
                         err =
-                            vmTensorInfo(vm, inputs[0], /*dtype=*/NULL, &sp_x);
+                            vmTensorInfo(vm, inputs[1], /*dtype=*/NULL, &sp_x);
                         if (err)
                                 return errEmitNote(
                                     "failed to grab the input shape.");
@@ -484,19 +482,20 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                                     "%d",
                                     sp_x->rank);
 
-                        if (sp_x->dims[1] != cfg->input_dim)
-                                return errNew(
-                                    "expect input[0].dims[1] == cfg.input_dim "
-                                    "for "
-                                    "scel layer. "
-                                    "got %d vs %d",
-                                    sp_x->dims[1], cfg->input_dim);
-
+                        // record.
                         bs               = sp_x->dims[0];
-                        this->batch_size = bs;  // recorded.
+                        this->batch_size = bs;
+                        input_dim        = sp_x->dims[1];
+                        this->input_dim  = input_dim;
                 } else {
+                        if (vecSize(inputs) != 1)
+                                return errNew(
+                                    "expect one grad for scel layer. got %d",
+                                    vecSize(inputs));
+
                         // no way to deduce.
-                        bs = this->batch_size;
+                        bs        = this->batch_size;
+                        input_dim = this->input_dim;
                 }
         }
 
@@ -514,7 +513,7 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                 ALLOC_T(y, sp_y);
                 ALLOC_T(o, sp_o);
         } else {
-                struct shape_t *sp_x = R2S(vm, bs, cfg->input_dim);
+                struct shape_t *sp_x = R2S(vm, bs, input_dim);
                 ALLOC_T(d_y, sp_y);
                 ALLOC_T(d_x, sp_x);
         }

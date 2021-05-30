@@ -120,7 +120,6 @@ error_t bbDenseLayer(struct vm_t *, const struct bb_dense_config_t *,
 #define BB_REDUCTION_MEAN 1
 
 struct bb_scel_config_t {
-        int input_dim;
         int reduction;
 };
 
@@ -135,6 +134,7 @@ struct bb_scel_layer_t {
 
         // other
         int batch_size;
+        int input_dim;
 };
 
 error_t bbSCELLayer(struct vm_t *, const struct bb_scel_config_t *,
