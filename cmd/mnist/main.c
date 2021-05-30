@@ -34,6 +34,7 @@ main()
 
         struct shape_t* sp = R2S(vm, 32, 10);
         int             x  = vmTensorNew(vm, F32, sp);
+        // int             y  = vmTensorNew(vm, F32, sp);
         vecPushBack(p->inputs, x);
 
         err = dense->ops.init(dense, &ctx, r);

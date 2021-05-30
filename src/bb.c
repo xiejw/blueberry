@@ -483,7 +483,6 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                                     vecSize(inputs));
 
                         struct shape_t *sp_x;
-                        // checks the shape of input and gets the batch size.
                         err =
                             vmTensorInfo(vm, inputs[1], /*dtype=*/NULL, &sp_x);
                         if (err)
@@ -520,62 +519,46 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
         }
 
         // stage 2: allocate intermediate values (iv).
-        struct shape_t *sp_y = R1S(vm, bs);
+        struct shape_t *sp_o = R1S(vm, bs);
         if (direction == BB_FORWARD) {
-                struct shape_t *sp_o = R1S(vm, 1);
-                ALLOC_T(y, sp_y);
+                struct shape_t *sp_r = R1S(vm, 1);
                 ALLOC_T(o, sp_o);
+                ALLOC_T(r, sp_r);
         } else {
                 struct shape_t *sp_x = R2S(vm, bs, input_dim);
-                ALLOC_T(d_y, sp_y);
+                ALLOC_T(d_o, sp_o);
                 ALLOC_T(d_x, sp_x);
         }
 
 #undef ALLOC_T
 
-        //        // stage 3: jit
-        //        if (direction == BB_FORWARD) {
-        //                // emit forward.
-        //                //   z[1] = zeros([1])
-        //                //
-        //                //   h [bs, out] = matmul(x[bs, in], w[in, out])
-        //                //   hb[bs, out] = h[bs, out] + b[out]
-        //                //   y [bs, out] = max(hb[bs, out], z[1])
-        //                int x = inputs[0];
-        //                bbProgAppend(
-        //                    p, &(struct oparg_t){OP_MATMUL, this->h, x,
-        //                    this->w, 0});
-        //                int y = this->h;
-        //                if (has_bias) {
-        //                        bbProgAppend(p, &(struct oparg_t){OP_ADD,
-        //                        this->hb, y,
-        //                                                          this->b,
-        //                                                          0});
-        //                        y = this->hb;
-        //                }
-        //                if (has_relu) {
-        //                        bbProgAppend(p, &(struct oparg_t){OP_MAX,
-        //                        this->y, y,
-        //                                                          /*zero=*/0,
-        //                                                          0});
-        //                        y = this->y;
-        //                }
-        //                vecPushBack(*outputs, y);
-        //                return OK;
-        //        } else {
-        //                //
-        //                // emit backward
-        //                //   state         = cmpL(hb[bs, out], z[1])
-        //                //   d_hb[bs, out] = mul(d_z[bs, out], state)
-        //                //
-        //                //   d_h[bs, out]  = d_hb[bs, out]
-        //                //   d_b[out]      = sum(d_hb[bs, out], axis=1)
-        //                //
-        //                //   d_w[in, out] = matmul(x[bs, in], d_h[bs, out],
-        //                trans_a)
-        //                //   d_x[bs, in]  = matmul(d_h[bs, out], w[h1, out]
-        //                trans_b)
-        //        }
+        // stage 3: jit
+        if (direction == BB_FORWARD) {
+                // emit forward.
+                //
+                //   o = scel(y, x)
+                //   r = reduce(o, axis=0)
+                int y = inputs[0];
+                int x = inputs[1];
+                bbProgAppend(p,
+                             &(struct oparg_t){OP_LS_SCEL, this->o, y, x, 0});
+
+                bbProgAppend(
+                    p, &(struct oparg_t){OP_REDUCE,
+                                         this->r,
+                                         this->o,
+                                         -1,
+                                         1,
+                                         {.mode = OPT_MODE_I_BIT, .i = 0}});
+                vecPushBack(*outputs, this->r);
+                return OK;
+        } else {
+                //
+                // emit backward
+                //
+                // o = scel(y, x, .i = d_o)
+                // d_x = mul(d_o, d_r)
+        }
         return OK;
 }
 
