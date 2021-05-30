@@ -51,14 +51,27 @@ bbVmInit()
         struct vm_t *vm = vmNew();
         if (vm == NULL) return NULL;
 
-        // td is 0 scalar.
-        struct shape_t *sp = R1S(vm, 1);
-        int             td = vmTensorNew(vm, F32, sp);
-        assert(td == 0);
+        // allocate some common tensors.
+        // TD: 0, scalar, zero.
+        // TD: 1, scalar, one.
+        {
+                struct shape_t *sp = R1S(vm, 1);
+                int             td = vmTensorNew(vm, F32, sp);
+                assert(td == 0);
 
-        error_t err = vmExec(vm, OP_FILL, NULL, td, -1, -1);
-        if (err) {
-                errFatalAndExit("init vm failed: %d", err);
+                error_t err = vmExec(vm, OP_FILL, NULL, td, -1, -1);
+                if (err) {
+                        errFatalAndExit("init vm failed: %d", err);
+                }
+
+                td = vmTensorNew(vm, F32, sp);
+                assert(td == 1);
+
+                struct opopt_t opt = {.mode = OPT_MODE_F_BIT, .f = 1.0};
+                err                = vmExec(vm, OP_FILL, &opt, td, -1, -1);
+                if (err) {
+                        errFatalAndExit("init vm failed: %d", err);
+                }
         }
         return vm;
 }
