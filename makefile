@@ -21,7 +21,7 @@ LDFLAGS         += ${MLVM_LIB} ${EVA_LIB}
 # Libs.
 # ------------------------------------------------------------------------------
 BB_HEADER       = ${SRC}/bb.h
-BB_LIB          = ${BUILD}/bb_bb.o ${BUILD}/bb_prog.o
+BB_LIB          = ${BUILD}/bb_bb.o ${BUILD}/bb_prog.o ${BUILD}/bb_module.o
 
 ALL_LIBS        = ${BB_LIB}
 

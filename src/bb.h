@@ -10,7 +10,7 @@
 #include "vm.h"
 
 // -----------------------------------------------------------------------------
-// Program APIs.
+// Program APIs.  // prop.c
 // -----------------------------------------------------------------------------
 
 struct vm_t *bbVmInit();  // put some preallocated tds.
@@ -72,6 +72,17 @@ struct bb_layer_t {
 };
 
 void bbLayerFree(struct bb_layer_t *);
+
+// -----------------------------------------------------------------------------
+// Module APIs.  // module.c
+// -----------------------------------------------------------------------------
+
+struct bb_opt_t;
+
+error_t moduleSeqNew(const struct bb_context_t *ctx, struct bb_program_t *p,
+                     int x, int y, vec_t(struct bb_layer_t *) layers,
+                     struct bb_layer_t *loss, struct bb_opt_t *opt,
+                     struct srng64_t *r);
 
 // -----------------------------------------------------------------------------
 // Dense layer.
