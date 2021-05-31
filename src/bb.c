@@ -145,6 +145,20 @@ bbProgDump(struct bb_program_t *p, sds_t *s)
         }
 
         {
+                sdsCatPrintf(s, "{  // labels\n  ");
+                size_t size = vecSize(p->labels);
+                if (size) {
+                        for (int i = 0; i < size; i++) {
+                                sdsCatPrintf(s, "%3d, ", p->labels[i]);
+                        }
+                        sdsCatPrintf(s, "\n");
+                } else {
+                        sdsCatPrintf(s, "(empty)\n");
+                }
+                sdsCatPrintf(s, "}\n");
+        }
+
+        {
                 sdsCatPrintf(s, "{  // weights\n  ");
                 size_t size = vecSize(p->weights);
                 if (size) {
@@ -196,13 +210,19 @@ bbProgDump(struct bb_program_t *p, sds_t *s)
                         case OP_MAX:
                                 opname = "OP_MAX";
                                 break;
+                        case OP_REDUCE:
+                                opname = "OP_REDUCE";
+                                break;
+                        case OP_LS_SCEL:
+                                opname = "OP_LS_SCEL";
+                                break;
                         default:
                                 opname = "UNKNOWN";
                         }
                         struct oparg_t *op = &curr->op;
                         sdsCatPrintf(s,
-                                     "  {.op = %2d (%-9s)}, .dst = %3d, .t1 = "
-                                     "%3d, .td = %3d\n",
+                                     "  {.op = %2d (%-10s)}, .dst = %3d, .t1 = "
+                                     "%3d, .t2 = %3d}\n",
                                      op->op, opname, op->dst, op->t1, op->t2);
                         curr = curr->next;
                 }
