@@ -59,75 +59,28 @@ bbProgDump(struct bb_program_t *p, sds_t *s)
 {
         sdsCatPrintf(s, "program:\n");
 
-        {
-                sdsCatPrintf(s, "{  // inputs\n  ");
-                size_t size = vecSize(p->inputs);
-                if (size) {
-                        for (int i = 0; i < size; i++) {
-                                sdsCatPrintf(s, "%3d, ", p->inputs[i]);
-                        }
-                        sdsCatPrintf(s, "\n");
-                } else {
-                        sdsCatPrintf(s, "(empty)\n");
-                }
-                sdsCatPrintf(s, "}\n");
+#define PRINT_COLLECTION(collection)                                        \
+        {                                                                   \
+                sdsCatPrintf(s, "{  // " #collection "\n  ");               \
+                size_t size = vecSize(p->collection);                       \
+                if (size) {                                                 \
+                        for (int i = 0; i < size; i++) {                    \
+                                sdsCatPrintf(s, "%3d, ", p->collection[i]); \
+                        }                                                   \
+                        sdsCatPrintf(s, "\n");                              \
+                } else {                                                    \
+                        sdsCatPrintf(s, "(empty)\n");                       \
+                }                                                           \
+                sdsCatPrintf(s, "}\n");                                     \
         }
 
-        {
-                sdsCatPrintf(s, "{  // labels\n  ");
-                size_t size = vecSize(p->labels);
-                if (size) {
-                        for (int i = 0; i < size; i++) {
-                                sdsCatPrintf(s, "%3d, ", p->labels[i]);
-                        }
-                        sdsCatPrintf(s, "\n");
-                } else {
-                        sdsCatPrintf(s, "(empty)\n");
-                }
-                sdsCatPrintf(s, "}\n");
-        }
+        PRINT_COLLECTION(inputs);
+        PRINT_COLLECTION(labels);
+        PRINT_COLLECTION(outputs);
+        PRINT_COLLECTION(weights);
+        PRINT_COLLECTION(grads);
 
-        {
-                sdsCatPrintf(s, "{  // outputs\n  ");
-                size_t size = vecSize(p->outputs);
-                if (size) {
-                        for (int i = 0; i < size; i++) {
-                                sdsCatPrintf(s, "%3d, ", p->outputs[i]);
-                        }
-                        sdsCatPrintf(s, "\n");
-                } else {
-                        sdsCatPrintf(s, "(empty)\n");
-                }
-                sdsCatPrintf(s, "}\n");
-        }
-
-        {
-                sdsCatPrintf(s, "{  // weights\n  ");
-                size_t size = vecSize(p->weights);
-                if (size) {
-                        for (int i = 0; i < size; i++) {
-                                sdsCatPrintf(s, "%3d, ", p->weights[i]);
-                        }
-                        sdsCatPrintf(s, "\n");
-                } else {
-                        sdsCatPrintf(s, "(empty)\n");
-                }
-                sdsCatPrintf(s, "}\n");
-        }
-
-        {
-                sdsCatPrintf(s, "{  // grads\n  ");
-                size_t size = vecSize(p->grads);
-                if (size) {
-                        for (int i = 0; i < size; i++) {
-                                sdsCatPrintf(s, "%3d, ", p->grads[i]);
-                        }
-                        sdsCatPrintf(s, "\n");
-                } else {
-                        sdsCatPrintf(s, "(empty)\n");
-                }
-                sdsCatPrintf(s, "}\n");
-        }
+#undef PRINT_COLLECTION
 
         {
                 sdsCatPrintf(s, "{  // ops\n");
