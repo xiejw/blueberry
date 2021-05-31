@@ -239,8 +239,14 @@ bbProgDump(struct bb_program_t *p, sds_t *s)
                         struct oparg_t *op = &curr->op;
                         sdsCatPrintf(s,
                                      "  {.op = %2d (%-10s)}, .dst = %3d, .t1 = "
-                                     "%3d, .t2 = %3d}\n",
+                                     "%3d, .t2 = %3d",
                                      op->op, opname, op->dst, op->t1, op->t2);
+                        if (!op->has_opt) {
+                                sdsCatPrintf(s, "}\n");
+                        } else {
+                                sdsCatPrintf(s, ", .mode = %d}\n",
+                                             op->opt.mode);
+                        }
                         curr = curr->next;
                 }
                 sdsCatPrintf(s, "}\n");
