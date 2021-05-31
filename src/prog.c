@@ -54,6 +54,26 @@ bbProgAppend(struct bb_program_t *p, struct oparg_t *op)
         }
 }
 
+static void
+bbOpDump(sds_t *s, struct opopt_t *opt)
+{
+        // dump like
+        //
+        //   .opt = {.mode=1}
+        //   .opt = {.mode=1|I, .i = 23}
+        //   .opt = {.mode=1|F, .f = 23.0}
+
+        sdsCatPrintf(s, ".opt = {.mode = %d", opt->mode & OPT_MODE_UNMASK);
+        if (OPT_MODE_GET_I_BIT(*opt)) {
+                sdsCatPrintf(s, "|I, .i = %d", opt->i);
+        } else if (OPT_MODE_GET_F_BIT(*opt)) {
+                sdsCatPrintf(s, "|F, .f = %f", opt->f);
+        } else if (OPT_MODE_GET_R_BIT(*opt)) {
+                sdsCatPrintf(s, "|R, .r = <to_be_filled>");
+        }
+        sdsCatPrintf(s, "}");
+}
+
 void
 bbProgDump(struct bb_program_t *p, sds_t *s)
 {
@@ -123,8 +143,9 @@ bbProgDump(struct bb_program_t *p, sds_t *s)
                         if (!op->has_opt) {
                                 sdsCatPrintf(s, "}\n");
                         } else {
-                                sdsCatPrintf(s, ", .mode = %d}\n",
-                                             op->opt.mode);
+                                sdsCatPrintf(s, ", ");
+                                bbOpDump(s, &op->opt);
+                                sdsCatPrintf(s, "}\n");
                         }
                         curr = curr->next;
                 }
