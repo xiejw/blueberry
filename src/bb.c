@@ -101,7 +101,10 @@ bbProgFree(struct bb_program_t *p)
                 curr = next;
         }
         vecFree(p->inputs);
+        vecFree(p->labels);
+        vecFree(p->outputs);
         vecFree(p->weights);
+        vecFree(p->grads);
         free(p);
 }
 
@@ -150,6 +153,20 @@ bbProgDump(struct bb_program_t *p, sds_t *s)
                 if (size) {
                         for (int i = 0; i < size; i++) {
                                 sdsCatPrintf(s, "%3d, ", p->labels[i]);
+                        }
+                        sdsCatPrintf(s, "\n");
+                } else {
+                        sdsCatPrintf(s, "(empty)\n");
+                }
+                sdsCatPrintf(s, "}\n");
+        }
+
+        {
+                sdsCatPrintf(s, "{  // outputs\n  ");
+                size_t size = vecSize(p->outputs);
+                if (size) {
+                        for (int i = 0; i < size; i++) {
+                                sdsCatPrintf(s, "%3d, ", p->outputs[i]);
                         }
                         sdsCatPrintf(s, "\n");
                 } else {

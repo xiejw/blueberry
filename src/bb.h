@@ -24,6 +24,7 @@ struct bb_inst_t {
 struct bb_program_t {
         vec_t(int) inputs;
         vec_t(int) labels;
+        vec_t(int) outputs;
         vec_t(int) weights;
         vec_t(int) grads;
         struct bb_inst_t *head;

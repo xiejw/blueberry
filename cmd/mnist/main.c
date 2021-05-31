@@ -14,7 +14,7 @@ main()
         struct bb_layer_t*   dense = NULL;
         struct bb_layer_t*   scel  = NULL;
         struct bb_program_t* p     = NULL;
-        vec_t(int) outputs         = vecNew();
+        vec_t(int) outputs1        = vecNew();
         sds_t s                    = sdsEmpty();
 
         error_t err = bbDenseLayer(
@@ -80,23 +80,25 @@ main()
                 }
         }
 
-        err = dense->ops.jit(dense, &ctx, p, BB_FORWARD, p->inputs, &outputs);
+        err = dense->ops.jit(dense, &ctx, p, BB_FORWARD, p->inputs, &outputs1);
         if (err) {
                 errDump("failed to jit dense layer\n");
                 goto cleanup;
         }
 
+        // concat the labels + dense layouer outputs.
         vec_t(int) loss_inputs = vecNew();
-        size_t total_size      = vecSize(p->inputs) + vecSize(p->labels);
+        size_t total_size      = vecSize(outputs1) + vecSize(p->labels);
         size_t size_1          = vecSize(p->labels);
-        vecReserve(loss_inputs, vecSize(p->inputs) + vecSize(p->labels));
+        vecReserve(loss_inputs, total_size);
+
         memcpy(loss_inputs, p->labels, sizeof(int) * size_1);
-        memcpy(loss_inputs + size_1, p->inputs,
+        memcpy(loss_inputs + size_1, outputs1,
                sizeof(int) * (total_size - size_1));
         vecSetSize(loss_inputs, total_size);
 
-        // TODO( outputs should be fed to inputs);
-        err = scel->ops.jit(scel, &ctx, p, BB_FORWARD, loss_inputs, &outputs);
+        err =
+            scel->ops.jit(scel, &ctx, p, BB_FORWARD, loss_inputs, &p->outputs);
         if (err) {
                 errDump("failed to jit dense layer\n");
                 goto cleanup;
@@ -108,7 +110,7 @@ main()
 cleanup:
 
         sdsFree(s);
-        vecFree(outputs);
+        vecFree(outputs1);
         if (p) bbProgFree(p);
         if (r) srng64Free(r);
         if (dense) bbLayerFree(dense);
