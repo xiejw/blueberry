@@ -97,15 +97,7 @@ error_t bbCompileSeqModule(const struct bb_context_t *ctx,
 #define BB_INIT_STD_NORMAL 2
 #define BB_INIT_STOPPER    3  // should not use
 
-#define BB_TAG_DENSE 0
-#define BB_TAG_SCEL  1
-
-struct bb_config_t {
-        int config_tag;
-};
-
 struct bb_dense_config_t {
-        int config_tag;
         int input_dim;
         int output_dim;
         int kernel_init;
@@ -142,7 +134,6 @@ error_t bbDenseLayer(struct vm_t *, const struct bb_dense_config_t *,
 #define BB_REDUCTION_MEAN 1
 
 struct bb_scel_config_t {
-        int config_tag;
         int reduction;
 };
 
