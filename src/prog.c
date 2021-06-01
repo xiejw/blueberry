@@ -123,6 +123,9 @@ bbProgDump(struct bb_program_t *p, sds_t *s)
                         case OP_MUL:
                                 opname = "OP_MUL";
                                 break;
+                        case OP_MINUS:
+                                opname = "OP_MINUS";
+                                break;
                         case OP_ADD:
                                 opname = "OP_ADD";
                                 break;

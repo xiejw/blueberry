@@ -21,7 +21,7 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
         vecPushBack(p->inputs, x);
         vecPushBack(p->labels, y);
 
-        // init all layers. num_layers + 1 (optimizer).
+        // init all layers. num_layers + 1.
         for (int i = 0; i <= num_layers; i++) {
                 struct bb_layer_t *l = i < num_layers ? layers[i] : loss;
 
@@ -40,6 +40,13 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
                         errEmitNote("failed to get grads of %d-th layer", i);
                         goto cleanup;
                 }
+        }
+
+        // init optimizer.
+        err = bbOptInit(opt, p->weights, p->grads);
+        if (err) {
+                errEmitNote("failed to init optimizer.");
+                goto cleanup;
         }
 
         vecPushBack(inputs, x);
@@ -92,6 +99,12 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
                         errEmitNote("failed to jit %d-th layer", i);
                         goto cleanup;
                 }
+        }
+
+        err = bbOptApply(opt, p);
+        if (err) {
+                errEmitNote("failed to apply optimizer.");
+                goto cleanup;
         }
 cleanup:
         vecFree(inputs);

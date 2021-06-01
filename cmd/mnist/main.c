@@ -45,6 +45,7 @@ main()
         struct srng64_t*    r            = NULL;
         vec_t(struct bb_layer_t*) layers = vecNew();
         struct bb_layer_t*   loss_layer  = NULL;
+        struct bb_opt_t*     opt         = NULL;
         struct bb_program_t* p           = NULL;
         sds_t                s           = sdsEmpty();
 
@@ -79,7 +80,8 @@ main()
         loss_layer = layers[vecSize(layers) - 1];
         vecSetSize(layers, vecSize(layers) - 1);
 
-        NE(bbCompileSeqModule(&ctx, p, x, y, layers, loss_layer, NULL, r));
+        NE(bbOptNew(vm, BB_OPT_SGD, 0.005, &opt));
+        NE(bbCompileSeqModule(&ctx, p, x, y, layers, loss_layer, opt, r));
 
         bbProgDump(p, &s);
         printf("%s", s);
@@ -87,6 +89,7 @@ main()
 cleanup:
 
         sdsFree(s);
+        bbOptFree(opt);
         for (size_t i = 0; i < vecSize(layers); i++) {
                 bbLayerFree(layers[i]);
         }

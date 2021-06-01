@@ -38,27 +38,30 @@ _bbOptSGDApply(struct bb_opt_t *opt, struct bb_program_t *p)
 }
 
 error_t
-bbOptNew(struct vm_t *vm, int type, float32_t lr, vec_t(int) weights,
-         vec_t(int) grads, struct bb_opt_t **out)
+bbOptNew(struct vm_t *vm, int type, float32_t lr, struct bb_opt_t **out)
 {
         struct bb_opt_t *opt = malloc(sizeof(struct bb_opt_t));
         memset(opt, 0, sizeof(struct bb_opt_t));
 
+        opt->lr   = lr;
+        opt->vm   = vm;
+        opt->type = type;
+
+        *out = opt;
+        return OK;
+}
+
+error_t
+bbOptInit(struct bb_opt_t *opt, vec_t(int) weights, vec_t(int) grads)
+{
         if (vecSize(weights) != vecSize(grads))
                 return errNew("opt expects len(weights) == len(grads).");
-        if (type != BB_OPT_SGD)
-                return errNew("unsupported optimizer type: %d", type);
 
-        opt->lr      = lr;
-        opt->vm      = vm;
-        opt->type    = type;
         opt->weights = weights;
         opt->grads   = grads;
 
-        assert(type == BB_OPT_SGD);
+        assert(opt->type == BB_OPT_SGD);
         _bbOptSGDInit(opt);
-
-        *out = opt;
         return OK;
 }
 
@@ -72,6 +75,7 @@ bbOptApply(struct bb_opt_t *opt, struct bb_program_t *p)
 void
 bbOptFree(struct bb_opt_t *opt)
 {
+        if (opt == NULL) return;
         struct vm_t *vm = opt->vm;
 
         {  // release states.

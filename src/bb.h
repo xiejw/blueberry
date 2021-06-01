@@ -93,8 +93,8 @@ struct bb_opt_t {
         void *private_data;
 };
 
-error_t bbOptNew(struct vm_t *vm, int type, float32_t lr, vec_t(int) weights,
-                 vec_t(int) grads, struct bb_opt_t **);
+error_t bbOptNew(struct vm_t *vm, int type, float32_t lr, struct bb_opt_t **);
+error_t bbOptInit(struct bb_opt_t *, vec_t(int) weights, vec_t(int) grads);
 error_t bbOptApply(struct bb_opt_t *, struct bb_program_t *);
 void    bbOptFree(struct bb_opt_t *);
 
