@@ -388,16 +388,15 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
 
         // stage 2: allocate intermediate values (iv).
         struct shape_t *sp_o = R1S(vm, bs);
+                struct shape_t *sp_x = R2S(vm, bs, input_dim);
         if (direction == BB_FORWARD) {
                 struct shape_t *sp_r = R1S(vm, 1);
                 ALLOC_T(o, sp_o);
                 ALLOC_T(r, sp_r);
                 if (is_training) {
-                        ALLOC_T(d_o, sp_o);
+                ALLOC_T(d_x, sp_x);
                 }
         } else {
-                struct shape_t *sp_x = R2S(vm, bs, input_dim);
-                ALLOC_T(d_x, sp_x);
         }
 
 #undef ALLOC_T
@@ -418,7 +417,7 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                                    y,
                                    x,
                                    1,
-                                   {.mode = OPT_MODE_I_BIT, .i = this->d_o}});
+                                   {.mode = OPT_MODE_I_BIT, .i = this->d_x}});
                 } else {
                         bbProgAppend(
                             p, &(struct oparg_t){OP_LS_SCEL, this->o, y, x, 0});
@@ -436,11 +435,11 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
         } else {
                 // emit backward
                 //
-                // o = scel(y, x, .i = d_o)
-                // d_x = mul(d_o, d_r)
+                // o = scel(y, x, .i = d_x)
+                // d_x = mul(d_x d_r)
                 int d_r = inputs[0];
                 bbProgAppend(
-                    p, &(struct oparg_t){OP_MUL, this->d_x, this->d_o, d_r, 0});
+                    p, &(struct oparg_t){OP_MUL, this->d_x, this->d_x, d_r, 0});
                 vecPushBack(*outputs, this->d_x);
                 return OK;
         }

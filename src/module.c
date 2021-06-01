@@ -1,5 +1,7 @@
 #include "bb.h"
 
+#define SWAP(x, y) t = (x); (x) = (y); (y) = t;
+
 error_t
 bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
                    int x, int y, vec_t(struct bb_layer_t *) layers,
@@ -48,9 +50,7 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
                 }
 
                 if (i != num_layers - 1) {
-                        t       = outputs;
-                        outputs = inputs;
-                        inputs  = t;
+                        SWAP(inputs, outputs);
                         vecSetSize(outputs, 0);  // clear
                 }
         }
@@ -68,10 +68,7 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
                 goto cleanup;
         }
 
-        // swap
-        t          = outputs;
-        outputs    = p->outputs;
-        p->outputs = t;
+        SWAP(outputs, p->outputs);
 
         direction = BB_BACKWARD;
         vecSetSize(inputs, 0);
