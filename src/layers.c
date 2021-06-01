@@ -453,3 +453,121 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                 return OK;
         }
 }
+
+// -----------------------------------------------------------------------------
+// Impl for AUC Metric.
+// -----------------------------------------------------------------------------
+DECLARE_LAYER_METHODS(AUC);
+
+error_t
+bbAUCMetric(struct vm_t *vm, struct bb_layer_t **out)
+{
+        struct bb_auc_layer_t *l = malloc(sizeof(struct bb_auc_layer_t));
+        memset(l, 0, sizeof(struct bb_auc_layer_t));
+        l->base.vm = vm;
+
+        struct bb_layer_operations_t *ops = &l->base.ops;
+        ops->init                         = _bbAUCInit;
+        ops->release                      = _bbLayerRelease;
+        ops->weights                      = _bbLayerWeights;
+        ops->grads                        = _bbLayerGrads;
+        ops->jit                          = _bbAUCJit;
+
+        *out = (struct bb_layer_t *)l;
+        return OK;
+}
+
+error_t
+_bbAUCInit(struct bb_layer_t *self, const struct bb_context_t *ctx,
+           struct srng64_t *rng)
+{
+        struct bb_auc_layer_t *this = (struct bb_auc_layer_t *)self;
+        struct vm_t *vm             = self->vm;
+
+        // create the shapes, states and save into ivs
+        struct shape_t *sp = R1S(vm, 1);
+
+#define ALLOC_STATE(name, sp, collection)         \
+        int name = vmTensorNew(vm, F32, sp);      \
+        vecPushBack(this->base.collection, name); \
+        this->name = name;
+
+        ALLOC_STATE(total, sp, ivs);
+        _bbInitTensor(vm, this->total, BB_INIT_ZERO, NULL);
+
+        ALLOC_STATE(count, sp, ivs);
+        _bbInitTensor(vm, this->count, BB_INIT_ZERO, NULL);
+
+#undef ALLOC_STATE
+        return OK;
+}
+
+error_t
+_bbAUCJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
+          struct bb_program_t *p, int direction, const vec_t(int) inputs,
+          vec_t(int) * outputs)
+{
+        error_t err;
+        struct bb_auc_layer_t *this = (struct bb_auc_layer_t *)self;
+        struct vm_t *vm             = self->vm;
+
+        assert(direction == BB_FORWARD);
+
+        // stage 1: error check. retrieve the batch size.
+        int bs;
+        {
+                if (vecSize(inputs) != 2)
+                        return errNew("expect two inputs for metric. got %d",
+                                      vecSize(inputs));
+
+                struct shape_t *sp_x;
+                err = vmTensorInfo(vm, inputs[1], /*dtype=*/NULL, &sp_x);
+                if (err) return errEmitNote("failed to grab the input shape.");
+                if (sp_x->rank != 2)
+                        return errNew(
+                            "expect rank 2 input for scel layer. got "
+                            "%d",
+                            sp_x->rank);
+
+                bs = sp_x->dims[0];
+        }
+
+#define ALLOC_T(name, sp)                                    \
+        {                                                    \
+                int name = vmTensorNew(self->vm, F32, (sp)); \
+                vecPushBack(self->ivs, name);                \
+                this->name = name;                           \
+        }
+
+        // stage 2: allocate intermediate values (iv).
+        struct shape_t *sp_arg = R1S(vm, bs);
+        struct shape_t *sp_r   = R1S(vm, 1);
+        ALLOC_T(arg_y, sp_arg);
+        ALLOC_T(arg_x, sp_arg);
+        ALLOC_T(same, sp_arg);
+        ALLOC_T(local_count, sp_r);
+#undef ALLOC_T
+
+        // stage 3: jit
+        int y = inputs[0];
+        int x = inputs[1];
+        bbProgAppend(p, &(struct oparg_t){OP_ARGMAX, this->arg_y, y, -1, 0});
+        bbProgAppend(p, &(struct oparg_t){OP_ARGMAX, this->arg_x, x, -1, 0});
+        bbProgAppend(p, &(struct oparg_t){OP_EQ, this->same, this->arg_x,
+                                          this->arg_y, 0});
+        bbProgAppend(p, &(struct oparg_t){OP_REDUCE,
+                                          this->local_count,
+                                          this->same,
+                                          -1,
+                                          1,
+                                          {.mode = OPT_MODE_I_BIT, .i = 0}});
+        bbProgAppend(p, &(struct oparg_t){OP_ADD, this->count, this->count,
+                                          this->local_count, 0});
+        bbProgAppend(p, &(struct oparg_t){OP_ADD,
+                                          this->total,
+                                          this->total,
+                                          -1,
+                                          1,
+                                          {.mode = OPT_MODE_F_BIT, .f = bs}});
+        return OK;
+}

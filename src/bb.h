@@ -55,8 +55,11 @@ void                 bbProgDump(struct bb_program_t *, sds_t *);
 
 #define BB_OPT_SGD 0
 
+#define BB_FLAG_NONE  0
+#define BB_FLAG_RESET 1
+
 // -----------------------------------------------------------------------------
-// Layer APIs.
+// Layer, Loss, Metric APIs.
 // -----------------------------------------------------------------------------
 
 struct bb_context_t {
@@ -76,8 +79,12 @@ struct bb_layer_operations_t {
         error_t (*jit)(struct bb_layer_t *, const struct bb_context_t *,
                        struct bb_program_t *, int direction,
                        const vec_t(int) inputs, vec_t(int) * outputs);
+
+        // metric only
+        error_t (*summary)(struct bb_layer_t *, void *data, int flag);
 };
 
+// Same for Layer, Loss, Metric.
 struct bb_layer_t {
         vec_t(int) weights;  // weights.
         vec_t(int) grads;    // grads for weights in order.

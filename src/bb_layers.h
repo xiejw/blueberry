@@ -60,4 +60,19 @@ struct bb_scel_layer_t {
 error_t bbSCELLayer(struct vm_t *, const struct bb_scel_config_t *,
                     struct bb_layer_t **);
 
+// -----------------------------------------------------------------------------
+// Accuracy Metrics.
+// -----------------------------------------------------------------------------
+struct bb_auc_layer_t {
+        struct bb_layer_t base;
+
+        // states
+        int total, count;
+
+        // ivs
+        int arg_y, arg_x, same, local_count;
+};
+
+error_t bbAUCMetric(struct vm_t *, struct bb_layer_t **);
+
 #endif
