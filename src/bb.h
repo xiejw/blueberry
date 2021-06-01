@@ -73,6 +73,8 @@ struct bb_layer_t {
 
 void bbLayerFree(struct bb_layer_t *);
 
+#include "bb_layers.h"
+
 // -----------------------------------------------------------------------------
 // Module APIs.  // module.c
 // -----------------------------------------------------------------------------
@@ -86,9 +88,8 @@ error_t bbCompileSeqModule(const struct bb_context_t *ctx,
                            struct srng64_t *r);
 
 // -----------------------------------------------------------------------------
-// Dense layer.
+// Constants.
 // -----------------------------------------------------------------------------
-
 #define BB_ACTN_NONE 0
 #define BB_ACTN_RELU 1
 
@@ -97,60 +98,7 @@ error_t bbCompileSeqModule(const struct bb_context_t *ctx,
 #define BB_INIT_STD_NORMAL 2
 #define BB_INIT_STOPPER    3  // should not use
 
-struct bb_dense_config_t {
-        int input_dim;
-        int output_dim;
-        int kernel_init;
-        int bias_init;  // NULL => absent
-        int actn;
-};
-
-struct bb_dense_layer_t {
-        struct bb_layer_t base;
-
-        struct bb_dense_config_t config;
-
-        // weights
-        int w;  // kernel
-        int b;  // bias. 0 means absent.
-
-        // grads.
-        int d_w;
-        int d_b;
-
-        // iv
-        int h, hb, y;          // forward
-        int state, d_hb, d_x;  // backward
-};
-
-error_t bbDenseLayer(struct vm_t *, const struct bb_dense_config_t *,
-                     struct bb_layer_t **);
-
-// -----------------------------------------------------------------------------
-// Softmax Crossentropy Loss Layer.
-// -----------------------------------------------------------------------------
-
 #define BB_REDUCTION_SUM  0
 #define BB_REDUCTION_MEAN 1
-
-struct bb_scel_config_t {
-        int reduction;
-};
-
-struct bb_scel_layer_t {
-        struct bb_layer_t base;
-
-        struct bb_scel_config_t config;
-
-        // iv
-        int o, r;  // forward
-        int d_x;   // backward
-
-        // other
-        int batch_size;
-};
-
-error_t bbSCELLayer(struct vm_t *, const struct bb_scel_config_t *,
-                    struct bb_layer_t **);
 
 #endif
