@@ -1,5 +1,7 @@
 #include "bb.h"
 
+#include "vm.h"
+
 #include <string.h>
 
 // -----------------------------------------------------------------------------
@@ -283,11 +285,10 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
         struct vm_t *                  vm  = self->vm;
         const struct bb_scel_config_t *cfg = &this->config;
         int                            is_training = ctx->is_training;
-        // int reduce_mean = cfg->reduction == BB_REDUCTION_MEAN;
+        int reduce_mean = cfg->reduction == BB_REDUCTION_MEAN;
 
-        // assert(cfg->reduction == BB_REDUCTION_SUM ||
-        //        cfg->reduction == BB_REDUCTION_MEAN);
-        assert(cfg->reduction == BB_REDUCTION_SUM);
+        assert(cfg->reduction == BB_REDUCTION_SUM ||
+               cfg->reduction == BB_REDUCTION_MEAN);
         assert(direction == BB_FORWARD || direction == BB_BACKWARD);
 
         // stage 1: error check. retrieve the batch size and input_dim;
@@ -345,6 +346,11 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                         // used for backprop, but need in forward pass.
                         ALLOC_T(d_x, sp_x);
                 }
+        } else {
+                if (reduce_mean) {
+                        struct shape_t *sp_r = R1S(vm, 1);
+                        ALLOC_T(d_r, sp_r);
+                }
         }
 
 #undef ALLOC_T
@@ -378,6 +384,16 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                                          -1,
                                          1,
                                          {.mode = OPT_MODE_I_BIT, .i = 0}});
+                if (reduce_mean) {
+                        bbProgAppend(
+                            p, &(struct oparg_t){
+                                   OP_MUL,
+                                   this->r,
+                                   this->r,
+                                   -1,
+                                   1,
+                                   {.mode = OPT_MODE_F_BIT, .f = 1.0 / bs}});
+                }
                 vecPushBack(*outputs, this->r);
                 return OK;
         } else {
@@ -386,6 +402,17 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                 // o = scel(y, x, .i = d_x)
                 // d_x = mul(d_x d_r)
                 int d_r = inputs[0];
+                if (reduce_mean) {
+                        bbProgAppend(
+                            p, &(struct oparg_t){
+                                   OP_MUL,
+                                   this->d_r,
+                                   d_r,
+                                   -1,
+                                   1,
+                                   {.mode = OPT_MODE_F_BIT, .f = 1.0 / bs}});
+                        d_r = this->d_r;
+                }
                 bbProgAppend(
                     p, &(struct oparg_t){OP_MUL, this->d_x, this->d_x, d_r, 0});
                 vecPushBack(*outputs, this->d_x);

@@ -43,11 +43,11 @@ void                 bbProgDump(struct bb_program_t *, sds_t *);
 #define BB_FORWARD  0
 #define BB_BACKWARD 1
 
-struct bb_layer_t;
-
 struct bb_context_t {
         int is_training;
 };
+
+struct bb_layer_t;
 
 struct bb_layer_operations_t {
         error_t (*init)(struct bb_layer_t *, const struct bb_context_t *,
@@ -73,6 +73,8 @@ struct bb_layer_t {
 
 void bbLayerFree(struct bb_layer_t *);
 
+// The following header file provides the layer definition and factory method to
+// create them.
 #include "bb_layers.h"
 
 // -----------------------------------------------------------------------------
