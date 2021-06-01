@@ -117,6 +117,9 @@ bbProgDump(struct bb_program_t *p, sds_t *s)
                         case OP_MATMUL:
                                 opname = "OP_MATMUL";
                                 break;
+                        case OP_CMPL:
+                                opname = "OP_CMPL";
+                                break;
                         case OP_MUL:
                                 opname = "OP_MUL";
                                 break;
