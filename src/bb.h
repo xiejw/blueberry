@@ -37,11 +37,27 @@ void                 bbProgAppend(struct bb_program_t *, struct oparg_t *);
 void                 bbProgDump(struct bb_program_t *, sds_t *);
 
 // -----------------------------------------------------------------------------
-// Layer APIs.
+// Constants.
 // -----------------------------------------------------------------------------
-
 #define BB_FORWARD  0
 #define BB_BACKWARD 1
+
+#define BB_ACTN_NONE 0
+#define BB_ACTN_RELU 1
+
+#define BB_INIT_NULL       0
+#define BB_INIT_ZERO       1
+#define BB_INIT_STD_NORMAL 2
+#define BB_INIT_STOPPER    3  // should not use
+
+#define BB_REDUCTION_SUM  0
+#define BB_REDUCTION_MEAN 1
+
+#define BB_OPT_SGD 0
+
+// -----------------------------------------------------------------------------
+// Layer APIs.
+// -----------------------------------------------------------------------------
 
 struct bb_context_t {
         int is_training;
@@ -81,8 +97,6 @@ void bbLayerFree(struct bb_layer_t *);
 // Optimizer APIs.  // opt.c
 // -----------------------------------------------------------------------------
 
-#define BB_OPT_SGD 0
-
 struct bb_opt_t {
         float32_t    lr;
         struct vm_t *vm;
@@ -102,26 +116,10 @@ void    bbOptFree(struct bb_opt_t *);
 // Module APIs.  // module.c
 // -----------------------------------------------------------------------------
 
-struct bb_opt_t;
-
 error_t bbCompileSeqModule(const struct bb_context_t *ctx,
                            struct bb_program_t *p, int x, int y,
                            vec_t(struct bb_layer_t *) layers,
                            struct bb_layer_t *loss, struct bb_opt_t *opt,
                            struct srng64_t *r);
-
-// -----------------------------------------------------------------------------
-// Constants.
-// -----------------------------------------------------------------------------
-#define BB_ACTN_NONE 0
-#define BB_ACTN_RELU 1
-
-#define BB_INIT_NULL       0
-#define BB_INIT_ZERO       1
-#define BB_INIT_STD_NORMAL 2
-#define BB_INIT_STOPPER    3  // should not use
-
-#define BB_REDUCTION_SUM  0
-#define BB_REDUCTION_MEAN 1
 
 #endif
