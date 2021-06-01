@@ -34,6 +34,14 @@ static error_t bbCreateLayers(struct vm_t*              vm,
         }
 
 // -----------------------------------------------------------------------------
+// MNIST.
+// -----------------------------------------------------------------------------
+#define TOTOL_IMAGES 60000
+#define BATCH_SIZE   32
+#define IMAGE_SIZE   (28 * 28)
+#define LABEL_SIZE   (10)
+
+// -----------------------------------------------------------------------------
 // Main.
 // -----------------------------------------------------------------------------
 int
@@ -52,10 +60,11 @@ main()
         r = srng64New(123);
         p = bbProgNew();
 
-        struct shape_t* sp = R2S(vm, 32, 10);
+        struct shape_t* sp_x = R2S(vm, BATCH_SIZE, IMAGE_SIZE);
+        struct shape_t* sp_y = R2S(vm, BATCH_SIZE, LABEL_SIZE);
 
-        int x = vmTensorNew(vm, F32, sp);
-        int y = vmTensorNew(vm, F32, sp);
+        int x = vmTensorNew(vm, F32, sp_x);
+        int y = vmTensorNew(vm, F32, sp_y);
 
         NE(bbCreateLayers(
             vm,
@@ -64,11 +73,31 @@ main()
                     .tag = BB_TAG_DENSE,
                     .config =
                         &(struct bb_dense_config_t){
-                            .input_dim   = 10,
-                            .output_dim  = 20,
+                            .input_dim   = (IMAGE_SIZE),
+                            .output_dim  = 64,
                             .kernel_init = BB_INIT_STD_NORMAL,
                             .bias_init   = BB_INIT_ZERO,
                             .actn        = BB_ACTN_RELU},
+                },
+                {
+                    .tag = BB_TAG_DENSE,
+                    .config =
+                        &(struct bb_dense_config_t){
+                            .input_dim   = 64,
+                            .output_dim  = 64,
+                            .kernel_init = BB_INIT_STD_NORMAL,
+                            .bias_init   = BB_INIT_ZERO,
+                            .actn        = BB_ACTN_RELU},
+                },
+                {
+                    .tag = BB_TAG_DENSE,
+                    .config =
+                        &(struct bb_dense_config_t){
+                            .input_dim   = 64,
+                            .output_dim  = LABEL_SIZE,
+                            .kernel_init = BB_INIT_STD_NORMAL,
+                            .bias_init   = BB_INIT_NULL,
+                            .actn        = BB_ACTN_NONE},
                 },
                 {.tag = BB_TAG_SCEL,
                  .config =
