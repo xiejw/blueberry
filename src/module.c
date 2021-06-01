@@ -1,12 +1,19 @@
 #include "bb.h"
 
 error_t
-moduleSeqNew(const struct bb_context_t *ctx, struct bb_program_t *p, int x,
-             int y, vec_t(struct bb_layer_t *) layers, struct bb_layer_t *loss,
-             struct bb_opt_t *opt, struct srng64_t *r)
+compileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p, int x,
+                 int                y, vec_t(struct bb_layer_t *) layers,
+                 struct bb_layer_t *loss, struct bb_opt_t *opt,
+                 struct srng64_t *r)
 {
         size_t  num_layers = vecSize(layers);
         error_t err        = OK;
+        vec_t(int) inputs  = vecNew();
+        vec_t(int) outputs = vecNew();
+        vec_t(int) t;
+
+        vecPushBack(p->inputs, x);
+        vecPushBack(p->labels, y);
 
         // init all layers. num_layers + 1 (optimizer).
         for (int i = 0; i <= num_layers; i++) {
@@ -29,6 +36,45 @@ moduleSeqNew(const struct bb_context_t *ctx, struct bb_program_t *p, int x,
                 }
         }
 
+        vecPushBack(inputs, x);
+
+        int direction = BB_FORWARD;
+        for (int i = 0; i < num_layers; i++) {
+                struct bb_layer_t *l = layers[i];
+                err = l->ops.jit(l, ctx, p, direction, inputs, &outputs);
+                if (err) {
+                        errEmitNote("failed to jit %d-th layer", i);
+                        goto cleanup;
+                }
+
+                if (i != num_layers - 1) {
+                        t       = outputs;
+                        outputs = inputs;
+                        inputs  = t;
+                        vecSetSize(outputs, 0);  // clear
+                }
+        }
+
+        assert(vecSize(outputs) == 1);
+        vecSetSize(inputs, 0);
+        vecPushBack(inputs, y);
+        vecPushBack(inputs, outputs[0]);
+        vecSetSize(outputs, 0);
+
+        struct bb_layer_t *l = loss;
+        err = l->ops.jit(l, ctx, p, direction, inputs, &outputs);
+        if (err) {
+                errEmitNote("failed to jit loss");
+                goto cleanup;
+        }
+
+        // swap
+        t          = outputs;
+        outputs    = p->outputs;
+        p->outputs = t;
+
 cleanup:
+        vecFree(inputs);
+        vecFree(outputs);
         return err;
 }

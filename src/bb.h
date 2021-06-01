@@ -79,10 +79,10 @@ void bbLayerFree(struct bb_layer_t *);
 
 struct bb_opt_t;
 
-error_t moduleSeqNew(const struct bb_context_t *ctx, struct bb_program_t *p,
-                     int x, int y, vec_t(struct bb_layer_t *) layers,
-                     struct bb_layer_t *loss, struct bb_opt_t *opt,
-                     struct srng64_t *r);
+error_t compileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
+                         int x, int y, vec_t(struct bb_layer_t *) layers,
+                         struct bb_layer_t *loss, struct bb_opt_t *opt,
+                         struct srng64_t *r);
 
 // -----------------------------------------------------------------------------
 // Dense layer.
