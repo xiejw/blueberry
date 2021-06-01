@@ -73,6 +73,11 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
         outputs    = p->outputs;
         p->outputs = t;
 
+        direction = BB_BACKWARD;
+        vecSetSize(inputs, 0);
+        vecPushBack(inputs, 1);  // start grads as ones (td: 1).
+        vecSetSize(outputs, 0);  // clear
+        err = l->ops.jit(l, ctx, p, direction, inputs, &outputs);
 cleanup:
         vecFree(inputs);
         vecFree(outputs);

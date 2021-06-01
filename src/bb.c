@@ -332,10 +332,12 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
         struct bb_scel_layer_t *this       = (struct bb_scel_layer_t *)self;
         struct vm_t *                  vm  = self->vm;
         const struct bb_scel_config_t *cfg = &this->config;
+        int                            is_training = ctx->is_training;
         // int reduce_mean = cfg->reduction == BB_REDUCTION_MEAN;
 
-        assert(cfg->reduction == BB_REDUCTION_SUM ||
-               cfg->reduction == BB_REDUCTION_MEAN);
+        // assert(cfg->reduction == BB_REDUCTION_SUM ||
+        //        cfg->reduction == BB_REDUCTION_MEAN);
+        assert(cfg->reduction == BB_REDUCTION_SUM);
         assert(direction == BB_FORWARD || direction == BB_BACKWARD);
 
         // stage 1: error check. retrieve the batch size and input_dim;
@@ -390,9 +392,11 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                 struct shape_t *sp_r = R1S(vm, 1);
                 ALLOC_T(o, sp_o);
                 ALLOC_T(r, sp_r);
+                if (is_training) {
+                        ALLOC_T(d_o, sp_o);
+                }
         } else {
                 struct shape_t *sp_x = R2S(vm, bs, input_dim);
-                ALLOC_T(d_o, sp_o);
                 ALLOC_T(d_x, sp_x);
         }
 
@@ -406,8 +410,19 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                 //   r = reduce(o, axis=0)
                 int y = inputs[0];
                 int x = inputs[1];
-                bbProgAppend(p,
-                             &(struct oparg_t){OP_LS_SCEL, this->o, y, x, 0});
+                if (is_training) {
+                        bbProgAppend(
+                            p, &(struct oparg_t){
+                                   OP_LS_SCEL,
+                                   this->o,
+                                   y,
+                                   x,
+                                   1,
+                                   {.mode = OPT_MODE_I_BIT, .i = this->d_o}});
+                } else {
+                        bbProgAppend(
+                            p, &(struct oparg_t){OP_LS_SCEL, this->o, y, x, 0});
+                }
 
                 bbProgAppend(
                     p, &(struct oparg_t){OP_REDUCE,
@@ -419,13 +434,16 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                 vecPushBack(*outputs, this->r);
                 return OK;
         } else {
-                //
                 // emit backward
                 //
                 // o = scel(y, x, .i = d_o)
                 // d_x = mul(d_o, d_r)
+                int d_r = inputs[0];
+                bbProgAppend(
+                    p, &(struct oparg_t){OP_MUL, this->d_x, this->d_o, d_r, 0});
+                vecPushBack(*outputs, this->d_x);
+                return OK;
         }
-        return OK;
 }
 
 // -----------------------------------------------------------------------------
