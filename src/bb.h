@@ -148,7 +148,6 @@ struct bb_scel_layer_t {
 
         // other
         int batch_size;
-        int input_dim;
 };
 
 error_t bbSCELLayer(struct vm_t *, const struct bb_scel_config_t *,

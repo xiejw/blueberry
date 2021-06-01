@@ -366,7 +366,6 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                         bs               = sp_x->dims[0];
                         this->batch_size = bs;
                         input_dim        = sp_x->dims[1];
-                        this->input_dim  = input_dim;
                 } else {
                         if (vecSize(inputs) != 1)
                                 return errNew(
@@ -374,8 +373,7 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                                     vecSize(inputs));
 
                         // no way to deduce.
-                        bs        = this->batch_size;
-                        input_dim = this->input_dim;
+                        bs = this->batch_size;
                 }
         }
 
@@ -387,13 +385,14 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
         }
 
         // stage 2: allocate intermediate values (iv).
-        struct shape_t *sp_o = R1S(vm, bs);
-        struct shape_t *sp_x = R2S(vm, bs, input_dim);
         if (direction == BB_FORWARD) {
+                struct shape_t *sp_x = R2S(vm, bs, input_dim);
+                struct shape_t *sp_o = R1S(vm, bs);
                 struct shape_t *sp_r = R1S(vm, 1);
                 ALLOC_T(o, sp_o);
                 ALLOC_T(r, sp_r);
                 if (is_training) {
+                        // used for backprop, but need in forward pass.
                         ALLOC_T(d_x, sp_x);
                 }
         }

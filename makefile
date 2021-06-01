@@ -36,6 +36,11 @@ compile: ${BUILD} ${ALL_LIBS}
 ${BUILD}/bb_%.o: ${SRC}/%.c ${BB_HEADER}
 	${EVA_CC} -o $@ -c $<
 
+compile_all:
+	make -C ../eva RELEASE=1 -B libeva
+	make -C ../mlvm RELEASE=1 -B libmlvm
+	make RELEASE=1 -B
+
 # ------------------------------------------------------------------------------
 # Cmd.
 # ------------------------------------------------------------------------------
@@ -48,4 +53,5 @@ CMD_TARGETS     = $(patsubst ${CMD}/%/main.c,${BUILD}/%,$(wildcard ${CMD}/*/main
 compile: ${CMD_TARGETS}
 
 $(foreach cmd,$(CMDS),$(eval $(call objs,$(cmd),$(BUILD),$(BB_LIB))))
+
 
