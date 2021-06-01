@@ -78,6 +78,25 @@ void bbLayerFree(struct bb_layer_t *);
 #include "bb_layers.h"
 
 // -----------------------------------------------------------------------------
+// Optimizer APIs.
+// -----------------------------------------------------------------------------
+
+#define BB_OPT_SGD 0
+
+struct bb_opt_t {
+        struct vm_t *vm;
+        int          type;
+        vec_t(int) weights;  // unowned.
+        vec_t(int) grads;    // unowned
+        vec_t(int) states;   // owned.
+};
+
+error_t bbOptNew(struct vm_t *vm, int type, vec_t(int) weights,
+                 vec_t(int) grads, struct bb_opt_t *);
+error_t bbOptApply(struct bb_opt_t *);
+void    bbOptFree(struct bb_opt_t *);
+
+// -----------------------------------------------------------------------------
 // Module APIs.  // module.c
 // -----------------------------------------------------------------------------
 
