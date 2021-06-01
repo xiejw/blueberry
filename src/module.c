@@ -81,6 +81,19 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
         CLEAR(inputs);
         vecPushBack(inputs, 1);  // start grads as ones (td: 1).
         err = l->ops.jit(l, ctx, p, direction, inputs, &outputs);
+
+
+        for (int i = num_layers-1; i >=0; i--) {
+                        SWAP(inputs, outputs);
+                        CLEAR(outputs);
+
+                struct bb_layer_t *l = layers[i];
+                err = l->ops.jit(l, ctx, p, direction, inputs, &outputs);
+                if (err) {
+                        errEmitNote("failed to jit %d-th layer", i);
+                        goto cleanup;
+                }
+        }
 cleanup:
         vecFree(inputs);
         vecFree(outputs);
