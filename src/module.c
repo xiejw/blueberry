@@ -1,6 +1,10 @@
 #include "bb.h"
 
-#define SWAP(x, y) t = (x); (x) = (y); (y) = t;
+#define SWAP(x, y) \
+        t   = (x); \
+        (x) = (y); \
+        (y) = t;
+#define CLEAR(x) vecSetSize((x), 0)
 
 error_t
 bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
@@ -51,15 +55,17 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
 
                 if (i != num_layers - 1) {
                         SWAP(inputs, outputs);
-                        vecSetSize(outputs, 0);  // clear
+                        CLEAR(outputs);
                 }
         }
 
         assert(vecSize(outputs) == 1);
-        vecSetSize(inputs, 0);
+
+        CLEAR(inputs);
         vecPushBack(inputs, y);
         vecPushBack(inputs, outputs[0]);
-        vecSetSize(outputs, 0);
+
+        CLEAR(outputs);
 
         struct bb_layer_t *l = loss;
         err = l->ops.jit(l, ctx, p, direction, inputs, &outputs);
@@ -71,9 +77,9 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
         SWAP(outputs, p->outputs);
 
         direction = BB_BACKWARD;
-        vecSetSize(inputs, 0);
+        CLEAR(outputs);
+        CLEAR(inputs);
         vecPushBack(inputs, 1);  // start grads as ones (td: 1).
-        vecSetSize(outputs, 0);  // clear
         err = l->ops.jit(l, ctx, p, direction, inputs, &outputs);
 cleanup:
         vecFree(inputs);

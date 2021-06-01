@@ -388,15 +388,14 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
 
         // stage 2: allocate intermediate values (iv).
         struct shape_t *sp_o = R1S(vm, bs);
-                struct shape_t *sp_x = R2S(vm, bs, input_dim);
+        struct shape_t *sp_x = R2S(vm, bs, input_dim);
         if (direction == BB_FORWARD) {
                 struct shape_t *sp_r = R1S(vm, 1);
                 ALLOC_T(o, sp_o);
                 ALLOC_T(r, sp_r);
                 if (is_training) {
-                ALLOC_T(d_x, sp_x);
+                        ALLOC_T(d_x, sp_x);
                 }
-        } else {
         }
 
 #undef ALLOC_T

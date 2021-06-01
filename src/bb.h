@@ -152,8 +152,8 @@ struct bb_scel_layer_t {
         struct bb_scel_config_t config;
 
         // iv
-        int o, r;      // forward
-        int d_x;  // backward
+        int o, r;  // forward
+        int d_x;   // backward
 
         // other
         int batch_size;
