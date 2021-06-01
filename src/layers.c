@@ -234,6 +234,15 @@ _bbDenseJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                 //   d_w[in, out] = matmul(x[bs, in], d_h[bs, out], trans_a)
                 //   d_x[bs, in]  = matmul(d_h[bs, out], w[h1, out] trans_b)
                 int d_y = inputs[0];
+                if (has_bias) {
+                        bbProgAppend(p, &(struct oparg_t){
+                                            OP_REDUCE,
+                                            this->d_b,
+                                            d_y,
+                                            -1,
+                                            1,
+                                            {.mode = OPT_MODE_I_BIT, .i = 1}});
+                }
                 bbProgAppend(p,
                              &(struct oparg_t){OP_MATMUL,
                                                this->d_w,
