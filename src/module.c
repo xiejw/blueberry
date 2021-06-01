@@ -1,10 +1,10 @@
 #include "bb.h"
 
 error_t
-compileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p, int x,
-                 int                y, vec_t(struct bb_layer_t *) layers,
-                 struct bb_layer_t *loss, struct bb_opt_t *opt,
-                 struct srng64_t *r)
+bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
+                   int x, int y, vec_t(struct bb_layer_t *) layers,
+                   struct bb_layer_t *loss, struct bb_opt_t *opt,
+                   struct srng64_t *r)
 {
         size_t  num_layers = vecSize(layers);
         error_t err        = OK;

@@ -12,7 +12,7 @@ main()
         struct bb_context_t ctx          = {.is_training = 1};
         struct srng64_t*    r            = NULL;
         struct bb_layer_t*  dense        = NULL;
-        struct bb_layer_t*  scel         = NULL;
+        struct bb_layer_t*  loss         = NULL;
         vec_t(struct bb_layer_t*) layers = vecNew();
         struct bb_program_t* p           = NULL;
         sds_t                s           = sdsEmpty();
@@ -40,14 +40,14 @@ main()
 
         err = bbSCELLayer(
             vm, &(struct bb_scel_config_t){.reduction = BB_REDUCTION_SUM},
-            &scel);
+            &loss);
         if (err) {
-                errDump("failed to create scel layer\n");
+                errDump("failed to create loss layer\n");
                 goto cleanup;
         }
 
         vecPushBack(layers, dense);
-        err = compileSeqModule(&ctx, p, x, y, layers, scel, NULL, r);
+        err = bbCompileSeqModule(&ctx, p, x, y, layers, loss, NULL, r);
         if (err) {
                 errDump("failed to compile module\n");
                 goto cleanup;
@@ -63,7 +63,7 @@ cleanup:
                 bbLayerFree(layers[i]);
         }
         vecFree(layers);
-        bbLayerFree(scel);
+        bbLayerFree(loss);
         bbProgFree(p);
         srng64Free(r);
         vmFree(vm);

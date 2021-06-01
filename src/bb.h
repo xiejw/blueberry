@@ -79,10 +79,11 @@ void bbLayerFree(struct bb_layer_t *);
 
 struct bb_opt_t;
 
-error_t compileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
-                         int x, int y, vec_t(struct bb_layer_t *) layers,
-                         struct bb_layer_t *loss, struct bb_opt_t *opt,
-                         struct srng64_t *r);
+error_t bbCompileSeqModule(const struct bb_context_t *ctx,
+                           struct bb_program_t *p, int x, int y,
+                           vec_t(struct bb_layer_t *) layers,
+                           struct bb_layer_t *loss, struct bb_opt_t *opt,
+                           struct srng64_t *r);
 
 // -----------------------------------------------------------------------------
 // Dense layer.
@@ -96,7 +97,15 @@ error_t compileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
 #define BB_INIT_STD_NORMAL 2
 #define BB_INIT_STOPPER    3  // should not use
 
+#define BB_TAG_DENSE 0
+#define BB_TAG_SCEL  1
+
+struct bb_config_t {
+        int config_tag;
+};
+
 struct bb_dense_config_t {
+        int config_tag;
         int input_dim;
         int output_dim;
         int kernel_init;
@@ -133,6 +142,7 @@ error_t bbDenseLayer(struct vm_t *, const struct bb_dense_config_t *,
 #define BB_REDUCTION_MEAN 1
 
 struct bb_scel_config_t {
+        int config_tag;
         int reduction;
 };
 
