@@ -59,6 +59,15 @@ bbDenseLayer(struct vm_t *vm, const struct bb_dense_config_t *cfg,
         if (!(cfg->actn == BB_ACTN_NONE || cfg->actn == BB_ACTN_RELU))
                 return errNew("acvn must be NONE or RELU; got %d", cfg->actn);
 
+        if (!(cfg->kernel_init > BB_INIT_NULL &&
+              cfg->kernel_init < BB_INIT_STOPPER))
+                return errNew("kernel init is out of range; got %d",
+                              cfg->kernel_init);
+        if (!(cfg->bias_init >= BB_INIT_NULL &&
+              cfg->bias_init < BB_INIT_STOPPER))
+                return errNew("bias init is out of range; got %d",
+                              cfg->bias_init);
+
         struct bb_dense_layer_t *l = malloc(sizeof(struct bb_dense_layer_t));
         memset(l, 0, sizeof(struct bb_dense_layer_t));
         l->base.vm = vm;
@@ -85,17 +94,7 @@ _bbDenseInit(struct bb_layer_t *self, const struct bb_context_t *ctx,
         int has_bias                        = cfg->bias_init != BB_INIT_NULL;
         int is_training                     = ctx->is_training;
 
-        // stage 1: error check
-        if (!(cfg->kernel_init > BB_INIT_NULL &&
-              cfg->kernel_init < BB_INIT_STOPPER))
-                return errNew("kernel init is out of range; got %d",
-                              cfg->kernel_init);
-        if (!(cfg->bias_init >= BB_INIT_NULL &&
-              cfg->bias_init < BB_INIT_STOPPER))
-                return errNew("bias init is out of range; got %d",
-                              cfg->bias_init);
-
-        // stage 2: create the shapes, weights, and grads if training.
+        // create the shapes, weights, and grads if training.
         struct shape_t *sp_w = R2S(vm, cfg->input_dim, cfg->output_dim);
 
 #define ALLOC_STATE(name, sp, collection)         \
