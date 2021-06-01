@@ -29,6 +29,9 @@ struct bb_dense_layer_t {
         // iv
         int h, hb, y;          // forward
         int state, d_hb, d_x;  // backward
+
+        // other
+        int x;  // used for backprop.
 };
 
 error_t bbDenseLayer(struct vm_t *, const struct bb_dense_config_t *,

@@ -204,7 +204,9 @@ _bbDenseJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                 //   h [bs, out] = matmul(x[bs, in], w[in, out])
                 //   hb[bs, out] = h[bs, out] + b[out]
                 //   y [bs, out] = max(hb[bs, out], z[1])
-                int x = inputs[0];
+                int x   = inputs[0];
+                this->x = x;  // record for backprop
+
                 bbProgAppend(
                     p, &(struct oparg_t){OP_MATMUL, this->h, x, this->w, 0});
                 int y = this->h;
@@ -231,6 +233,22 @@ _bbDenseJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                 //
                 //   d_w[in, out] = matmul(x[bs, in], d_h[bs, out], trans_a)
                 //   d_x[bs, in]  = matmul(d_h[bs, out], w[h1, out] trans_b)
+                int d_y = inputs[0];
+                bbProgAppend(p,
+                             &(struct oparg_t){OP_MATMUL,
+                                               this->d_w,
+                                               this->x,
+                                               d_y,
+                                               1,
+                                               {.mode = OPT_MATMUL_TRANS_LHS}});
+                bbProgAppend(p,
+                             &(struct oparg_t){OP_MATMUL,
+                                               this->d_x,
+                                               d_y,
+                                               this->w,
+                                               1,
+                                               {.mode = OPT_MATMUL_TRANS_RHS}});
+                vecPushBack(*outputs, this->d_x);
         }
         return OK;
 }
