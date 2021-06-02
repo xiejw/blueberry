@@ -48,11 +48,10 @@ int
 main()
 {
         printf("hello bb.\n");
-        struct vm_t*        vm           = bbVmInit();
-        struct bb_context_t ctx          = {.is_training = 1};
-        vec_t(struct bb_layer_t*) layers = vecNew();
-        struct bb_program_t* p           = bbProgNew();
-        sds_t                s           = sdsEmpty();
+        struct vm_t*         vm  = bbVmInit();
+        struct bb_context_t  ctx = {.is_training = 1};
+        struct bb_program_t* p   = bbProgNew();
+        sds_t                s   = sdsEmpty();
 
         struct bb_seq_module_t* m = malloc(sizeof(struct bb_seq_module_t));
         memset(m, 0, sizeof(struct bb_seq_module_t));
@@ -102,11 +101,9 @@ main()
                  .config =
                      &(struct bb_scel_config_t){.reduction = BB_REDUCTION_SUM}},
                 {.tag = BB_TAG_NULL}},
-            &layers));
+            &m->layers));
 
-        m->loss = layers[vecSize(layers) - 1];    // Take the loss out.
-        vecSetSize(layers, vecSize(layers) - 1);  // Shrink size.
-        m->layers = layers;                       // Move ownership
+        m->loss = vecPopBack(m->layers);
 
         NE(bbOptNew(vm, BB_OPT_SGD, 0.005, &m->opt));
         NE(bbAUCMetric(vm, &m->metric));

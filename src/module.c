@@ -8,16 +8,6 @@
         (y) = t;
 #define CLEAR(x) vecSetSize((x), 0)
 
-static void vecExtend(vec_t(int) * dst, vec_t(int) src)
-{
-        if (src == NULL) return;
-        int old_size = vecSize(*dst);
-        int inc      = vecSize(src);
-        vecReserve(*dst, old_size + inc);
-        memcpy((*dst) + old_size, src, sizeof(int) * inc);
-        vecSetSize(*dst, old_size + inc);
-}
-
 void
 bbSeqModuleFree(struct bb_seq_module_t *m)
 {
@@ -87,7 +77,7 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
                 goto cleanup;
         }
 
-        vecExtend(&p->states, opt->states);
+        vecExtend(p->states, opt->states);
 
         // init metric.
         err = metric->ops.init(metric, ctx, r);

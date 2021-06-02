@@ -56,34 +56,19 @@ bbLayerFree(struct bb_layer_t *p)
 error_t
 _bbLayerWeights(struct bb_layer_t *this, vec_t(int) * tds)
 {
-        int old_size = vecSize(*tds);
-        int inc      = vecSize(this->weights);
-        vecReserve(*tds, old_size + inc);
-        memcpy((*tds) + old_size, this->weights, sizeof(int) * inc);
-        vecSetSize(*tds, old_size + inc);
-        return OK;
+        return vecExtend(*tds, this->weights);
 }
 
 error_t
 _bbLayerGrads(struct bb_layer_t *this, vec_t(int) * tds)
 {
-        int old_size = vecSize(*tds);
-        int inc      = vecSize(this->grads);
-        vecReserve(*tds, old_size + inc);
-        memcpy((*tds) + old_size, this->grads, sizeof(int) * inc);
-        vecSetSize(*tds, old_size + inc);
-        return OK;
+        return vecExtend(*tds, this->grads);
 }
 
 error_t
 _bbLayerStates(struct bb_layer_t *this, vec_t(int) * tds)
 {
-        int old_size = vecSize(*tds);
-        int inc      = vecSize(this->states);
-        vecReserve(*tds, old_size + inc);
-        memcpy((*tds) + old_size, this->states, sizeof(int) * inc);
-        vecSetSize(*tds, old_size + inc);
-        return OK;
+        return vecExtend(*tds, this->states);
 }
 
 error_t
