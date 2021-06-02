@@ -10,7 +10,8 @@ error_t
 bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
                    int x, int y, vec_t(struct bb_layer_t *) layers,
                    struct bb_layer_t *loss, struct bb_opt_t *opt,
-                   struct srng64_t *r)
+
+                   struct bb_layer_t *metric, struct srng64_t *r)
 {
         size_t  num_layers = vecSize(layers);
         error_t err        = OK;
@@ -49,6 +50,13 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
                 goto cleanup;
         }
 
+        // init metric.
+        err = metric->ops.init(metric, ctx, r);
+        if (err) {
+                errEmitNote("failed to init metric.");
+                goto cleanup;
+        }
+
         vecPushBack(inputs, x);
 
         int direction = BB_FORWARD;
@@ -78,6 +86,12 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
         err = l->ops.jit(l, ctx, p, direction, inputs, &outputs);
         if (err) {
                 errEmitNote("failed to jit loss");
+                goto cleanup;
+        }
+
+        err = metric->ops.jit(metric, ctx, p, direction, inputs, NULL);
+        if (err) {
+                errEmitNote("failed to jit metricoss");
                 goto cleanup;
         }
 

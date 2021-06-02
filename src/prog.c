@@ -135,6 +135,12 @@ bbProgDump(struct bb_program_t *p, sds_t *s)
                         case OP_REDUCE:
                                 opname = "OP_REDUCE";
                                 break;
+                        case OP_ARGMAX:
+                                opname = "OP_ARGMAX";
+                                break;
+                        case OP_EQ:
+                                opname = "OP_EQ";
+                                break;
                         case OP_LS_SCEL:
                                 opname = "OP_LS_SCEL";
                                 break;

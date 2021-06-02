@@ -459,6 +459,8 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
 // -----------------------------------------------------------------------------
 DECLARE_LAYER_METHODS(AUC);
 
+static error_t _bbAUCSummary(struct bb_layer_t *, void *data, int flag);
+
 error_t
 bbAUCMetric(struct vm_t *vm, struct bb_layer_t **out)
 {
@@ -472,6 +474,7 @@ bbAUCMetric(struct vm_t *vm, struct bb_layer_t **out)
         ops->weights                      = _bbLayerWeights;
         ops->grads                        = _bbLayerGrads;
         ops->jit                          = _bbAUCJit;
+        ops->summary                      = _bbAUCSummary;
 
         *out = (struct bb_layer_t *)l;
         return OK;
@@ -569,5 +572,36 @@ _bbAUCJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                                           -1,
                                           1,
                                           {.mode = OPT_MODE_F_BIT, .f = bs}});
+        return OK;
+}
+
+error_t
+_bbAUCSummary(struct bb_layer_t *self, void *data, int flag)
+{
+        struct bb_auc_layer_t *this = (struct bb_auc_layer_t *)self;
+        struct vm_t *vm             = self->vm;
+
+        error_t err;
+        float   auc;
+        float   count;
+        float   total;
+
+        float *buf;
+
+        err = vmTensorData(vm, this->count, (void **)&buf);
+        if (err) return errEmitNote("failed to get the data of count.");
+        count = *buf;
+
+        err = vmTensorData(vm, this->total, (void **)&buf);
+        if (err) return errEmitNote("failed to get the data of total.");
+        total = *buf;
+
+        auc            = count / total;
+        *(float *)data = auc;
+
+        if (flag & BB_FLAG_RESET) {
+                _bbInitTensor(vm, this->total, BB_INIT_ZERO, NULL);
+                _bbInitTensor(vm, this->count, BB_INIT_ZERO, NULL);
+        }
         return OK;
 }

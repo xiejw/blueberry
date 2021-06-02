@@ -54,6 +54,7 @@ main()
         vec_t(struct bb_layer_t*) layers = vecNew();
         struct bb_layer_t*   loss_layer  = NULL;
         struct bb_opt_t*     opt         = NULL;
+        struct bb_layer_t*   metric      = NULL;
         struct bb_program_t* p           = NULL;
         sds_t                s           = sdsEmpty();
 
@@ -110,10 +111,16 @@ main()
         vecSetSize(layers, vecSize(layers) - 1);
 
         NE(bbOptNew(vm, BB_OPT_SGD, 0.005, &opt));
-        NE(bbCompileSeqModule(&ctx, p, x, y, layers, loss_layer, opt, r));
+        NE(bbAUCMetric(vm, &metric));
+        NE(bbCompileSeqModule(&ctx, p, x, y, layers, loss_layer, opt, metric,
+                              r));
 
         bbProgDump(p, &s);
         printf("%s", s);
+
+        float auc;
+        NE(metric->ops.summary(metric, &auc, BB_FLAG_RESET));
+        printf("auc: %f", auc);
 
 cleanup:
 
@@ -123,6 +130,7 @@ cleanup:
                 bbLayerFree(layers[i]);
         }
         bbLayerFree(loss_layer);
+        bbLayerFree(metric);
         vecFree(layers);
         bbProgFree(p);
         srng64Free(r);
