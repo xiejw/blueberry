@@ -31,6 +31,7 @@ bbProgFree(struct bb_program_t *p)
         vecFree(p->outputs);
         vecFree(p->weights);
         vecFree(p->grads);
+        vecFree(p->states);
         free(p);
 }
 
@@ -99,6 +100,7 @@ bbProgDump(struct bb_program_t *p, sds_t *s)
         PRINT_COLLECTION(outputs);
         PRINT_COLLECTION(weights);
         PRINT_COLLECTION(grads);
+        PRINT_COLLECTION(states);
 
 #undef PRINT_COLLECTION
 

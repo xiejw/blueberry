@@ -38,6 +38,7 @@ _bbInitTensor(struct vm_t *vm, int td, int mode, struct srng64_t *rng)
 // defs in bb.c
 error_t _bbLayerGrads(struct bb_layer_t *, vec_t(int) *);
 error_t _bbLayerWeights(struct bb_layer_t *, vec_t(int) *);
+error_t _bbLayerStates(struct bb_layer_t *, vec_t(int) *);
 error_t _bbLayerRelease(struct bb_layer_t *);
 
 // -----------------------------------------------------------------------------
@@ -78,6 +79,7 @@ bbDenseLayer(struct vm_t *vm, const struct bb_dense_config_t *cfg,
         ops->release                      = _bbLayerRelease;
         ops->weights                      = _bbLayerWeights;
         ops->grads                        = _bbLayerGrads;
+        ops->states                       = _bbLayerStates;
         ops->jit                          = _bbDenseJit;
 
         *out = (struct bb_layer_t *)l;
@@ -295,6 +297,7 @@ bbSCELLayer(struct vm_t *vm, const struct bb_scel_config_t *cfg,
         ops->release                      = _bbLayerRelease;
         ops->weights                      = _bbLayerWeights;
         ops->grads                        = _bbLayerGrads;
+        ops->states                       = _bbLayerStates;
         ops->jit                          = _bbSCELJit;
 
         *out = (struct bb_layer_t *)l;
@@ -473,6 +476,7 @@ bbAUCMetric(struct vm_t *vm, struct bb_layer_t **out)
         ops->release                      = _bbLayerRelease;
         ops->weights                      = _bbLayerWeights;
         ops->grads                        = _bbLayerGrads;
+        ops->states                       = _bbLayerStates;
         ops->jit                          = _bbAUCJit;
         ops->summary                      = _bbAUCSummary;
 
@@ -495,10 +499,10 @@ _bbAUCInit(struct bb_layer_t *self, const struct bb_context_t *ctx,
         vecPushBack(this->base.collection, name); \
         this->name = name;
 
-        ALLOC_STATE(total, sp, ivs);
+        ALLOC_STATE(total, sp, states);
         _bbInitTensor(vm, this->total, BB_INIT_ZERO, NULL);
 
-        ALLOC_STATE(count, sp, ivs);
+        ALLOC_STATE(count, sp, states);
         _bbInitTensor(vm, this->count, BB_INIT_ZERO, NULL);
 
 #undef ALLOC_STATE

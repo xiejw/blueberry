@@ -1,10 +1,22 @@
 #include "bb.h"
 
+#include <string.h>
+
 #define SWAP(x, y) \
         t   = (x); \
         (x) = (y); \
         (y) = t;
 #define CLEAR(x) vecSetSize((x), 0)
+
+static void vecExtend(vec_t(int) * dst, vec_t(int) src)
+{
+        if (src == NULL) return;
+        int old_size = vecSize(*dst);
+        int inc      = vecSize(src);
+        vecReserve(*dst, old_size + inc);
+        memcpy((*dst) + old_size, src, sizeof(int) * inc);
+        vecSetSize(*dst, old_size + inc);
+}
 
 error_t
 bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
@@ -41,6 +53,11 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
                         errEmitNote("failed to get grads of %d-th layer", i);
                         goto cleanup;
                 }
+                err = l->ops.states(l, &p->states);
+                if (err) {
+                        errEmitNote("failed to get states of %d-th states", i);
+                        goto cleanup;
+                }
         }
 
         // init optimizer.
@@ -50,10 +67,17 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
                 goto cleanup;
         }
 
+        vecExtend(&p->states, opt->states);
+
         // init metric.
         err = metric->ops.init(metric, ctx, r);
         if (err) {
                 errEmitNote("failed to init metric.");
+                goto cleanup;
+        }
+        err = metric->ops.states(metric, &p->states);
+        if (err) {
+                errEmitNote("failed to get states of metrics.");
                 goto cleanup;
         }
 

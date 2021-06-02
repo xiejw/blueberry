@@ -76,6 +76,17 @@ _bbLayerGrads(struct bb_layer_t *this, vec_t(int) * tds)
 }
 
 error_t
+_bbLayerStates(struct bb_layer_t *this, vec_t(int) * tds)
+{
+        int old_size = vecSize(*tds);
+        int inc      = vecSize(this->states);
+        vecReserve(*tds, old_size + inc);
+        memcpy((*tds) + old_size, this->states, sizeof(int) * inc);
+        vecSetSize(*tds, old_size + inc);
+        return OK;
+}
+
+error_t
 _bbLayerRelease(struct bb_layer_t *this)
 {
         struct vm_t *vm = this->vm;
@@ -98,6 +109,7 @@ _bbLayerRelease(struct bb_layer_t *this)
 
         RELEAE_TDS((this->weights));
         RELEAE_TDS((this->grads));
+        RELEAE_TDS((this->states));
         RELEAE_TDS((this->ivs));
 #undef RELEAE_TDS
         return OK;

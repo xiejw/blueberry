@@ -27,6 +27,7 @@ struct bb_program_t {
         vec_t(int) outputs;
         vec_t(int) weights;
         vec_t(int) grads;
+        vec_t(int) states;
         struct bb_inst_t *head;
         struct bb_inst_t *tail;
 };
@@ -75,6 +76,7 @@ struct bb_layer_operations_t {
 
         error_t (*weights)(struct bb_layer_t *, vec_t(int) * tds);
         error_t (*grads)(struct bb_layer_t *, vec_t(int) * tds);
+        error_t (*states)(struct bb_layer_t *, vec_t(int) * tds);
 
         error_t (*jit)(struct bb_layer_t *, const struct bb_context_t *,
                        struct bb_program_t *, int direction,
@@ -88,6 +90,7 @@ struct bb_layer_operations_t {
 struct bb_layer_t {
         vec_t(int) weights;  // weights.
         vec_t(int) grads;    // grads for weights in order.
+        vec_t(int) states;   // grads for weights in order.
         vec_t(int) ivs;      // intermediate values.
 
         struct vm_t *                vm;
