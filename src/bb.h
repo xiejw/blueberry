@@ -136,9 +136,28 @@ struct bb_seq_module_t {
         struct srng64_t *  r;               // owned.
 };
 
-void bbSeqModuleFree(struct bb_seq_module_t *);
+struct bb_seq_module_t *bbSeqModuleNew();
+void                    bbSeqModuleFree(struct bb_seq_module_t *);
 
 error_t bbCompileSeqModule(const struct bb_context_t *ctx,
                            struct bb_program_t *p, struct bb_seq_module_t *);
+
+// -----------------------------------------------------------------------------
+// Experimental way to create Layers.
+// -----------------------------------------------------------------------------
+//
+// Thoughts: This creates a bunch of layers. It is good, but only for sequential
+// layers. For residual network, how to express?
+#define BB_TAG_NULL  0
+#define BB_TAG_DENSE 1
+#define BB_TAG_SCEL  2
+
+struct bb_layer_config_t {
+        int   tag;
+        void *config;
+};
+
+error_t bbCreateLayers(struct vm_t *vm, struct bb_layer_config_t *layer_configs,
+                       vec_t(struct bb_layer_t *) * layers);
 
 #endif

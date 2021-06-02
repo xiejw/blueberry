@@ -8,9 +8,20 @@
         (y) = t;
 #define CLEAR(x) vecSetSize((x), 0)
 
+struct bb_seq_module_t *
+bbSeqModuleNew()
+{
+        struct bb_seq_module_t *m = malloc(sizeof(struct bb_seq_module_t));
+        if (m == NULL) return NULL;
+        memset(m, 0, sizeof(struct bb_seq_module_t));
+        return m;
+}
+
 void
 bbSeqModuleFree(struct bb_seq_module_t *m)
 {
+        if (m == NULL) return;
+
         bbLayerFree(m->loss);
         bbOptFree(m->opt);
         bbLayerFree(m->metric);
@@ -34,6 +45,13 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
         struct bb_opt_t *  opt            = m->opt;
         struct bb_layer_t *metric         = m->metric;
         struct srng64_t *  r              = m->r;
+
+        assert(x != 0 && y != 0);
+        assert(layers != NULL);
+        assert(loss != NULL);
+        assert(opt != NULL);
+        assert(metric != NULL);
+        assert(r != NULL);
 
         size_t  num_layers = vecSize(layers);
         error_t err        = OK;

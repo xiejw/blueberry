@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <string.h>
 
 // bb
 #include "bb.h"
@@ -7,23 +6,6 @@
 // -----------------------------------------------------------------------------
 // Helper Prototype.
 // -----------------------------------------------------------------------------
-
-// Experimental way to create layers.
-//
-// Thoughts: This creates a bunch of layers. It is good, but only for sequential
-// layers. For residual network, how to express?
-#define BB_TAG_NULL  0
-#define BB_TAG_DENSE 1
-#define BB_TAG_SCEL  2
-
-struct bb_layer_config_t {
-        int   tag;
-        void* config;
-};
-
-static error_t bbCreateLayers(struct vm_t*              vm,
-                              struct bb_layer_config_t* layer_configs,
-                              vec_t(struct bb_layer_t*) * layers);
 
 #define NE(err) _NE_IMPL(err, __FILE__, __LINE__)
 
@@ -47,14 +29,11 @@ static error_t bbCreateLayers(struct vm_t*              vm,
 int
 main()
 {
-        printf("hello bb.\n");
-        struct vm_t*         vm  = bbVmInit();
-        struct bb_context_t  ctx = {.is_training = 1};
-        struct bb_program_t* p   = bbProgNew();
-        sds_t                s   = sdsEmpty();
-
-        struct bb_seq_module_t* m = malloc(sizeof(struct bb_seq_module_t));
-        memset(m, 0, sizeof(struct bb_seq_module_t));
+        struct vm_t*            vm  = bbVmInit();
+        struct bb_context_t     ctx = {.is_training = 1};
+        struct bb_program_t*    p   = bbProgNew();
+        sds_t                   s   = sdsEmpty();
+        struct bb_seq_module_t* m   = bbSeqModuleNew();
 
         m->r = srng64New(123);
 
@@ -121,45 +100,5 @@ cleanup:
         bbSeqModuleFree(m);
         bbProgFree(p);
         vmFree(vm);
-        return OK;
-}
-
-// -----------------------------------------------------------------------------
-// Helper impl.
-// -----------------------------------------------------------------------------
-
-error_t
-bbCreateLayers(struct vm_t* vm, struct bb_layer_config_t* layer_configs,
-               vec_t(struct bb_layer_t*) * layers)
-{
-        error_t            err;
-        struct bb_layer_t* layer;
-
-        struct bb_layer_config_t* curr = layer_configs;
-        while (curr->tag != BB_TAG_NULL) {
-                switch (curr->tag) {
-                case BB_TAG_DENSE:
-                        err = bbDenseLayer(
-                            vm, (struct bb_dense_config_t*)curr->config,
-                            &layer);
-                        if (err) {
-                                return errEmitNote("failed to create layer.");
-                        }
-                        vecPushBack(*layers, layer);
-                        break;
-                case BB_TAG_SCEL:
-                        err = bbSCELLayer(
-                            vm, (struct bb_scel_config_t*)curr->config, &layer);
-                        if (err) {
-                                return errEmitNote("failed to create layer.");
-                        }
-                        vecPushBack(*layers, layer);
-                        break;
-                default:
-                        return errNew("config tag is not supported: %d",
-                                      curr->tag);
-                }
-                curr++;
-        }
         return OK;
 }
