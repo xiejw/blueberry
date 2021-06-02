@@ -50,22 +50,20 @@ main()
         printf("hello bb.\n");
         struct vm_t*        vm           = bbVmInit();
         struct bb_context_t ctx          = {.is_training = 1};
-        struct srng64_t*    r            = NULL;
         vec_t(struct bb_layer_t*) layers = vecNew();
-        struct bb_layer_t*   loss_layer  = NULL;
-        struct bb_opt_t*     opt         = NULL;
-        struct bb_layer_t*   metric      = NULL;
-        struct bb_program_t* p           = NULL;
+        struct bb_program_t* p           = bbProgNew();
         sds_t                s           = sdsEmpty();
 
-        r = srng64New(123);
-        p = bbProgNew();
+        struct bb_seq_module_t* m = malloc(sizeof(struct bb_seq_module_t));
+        memset(m, 0, sizeof(struct bb_seq_module_t));
+
+        m->r = srng64New(123);
 
         struct shape_t* sp_x = R2S(vm, BATCH_SIZE, IMAGE_SIZE);
         struct shape_t* sp_y = R2S(vm, BATCH_SIZE, LABEL_SIZE);
 
-        int x = vmTensorNew(vm, F32, sp_x);
-        int y = vmTensorNew(vm, F32, sp_y);
+        m->x = vmTensorNew(vm, F32, sp_x);
+        m->y = vmTensorNew(vm, F32, sp_y);
 
         NE(bbCreateLayers(
             vm,
@@ -106,34 +104,25 @@ main()
                 {.tag = BB_TAG_NULL}},
             &layers));
 
-        // Take the loss out.
-        loss_layer = layers[vecSize(layers) - 1];
-        vecSetSize(layers, vecSize(layers) - 1);
+        m->loss = layers[vecSize(layers) - 1];    // Take the loss out.
+        vecSetSize(layers, vecSize(layers) - 1);  // Shrink size.
+        m->layers = layers;                       // Move ownership
 
-        NE(bbOptNew(vm, BB_OPT_SGD, 0.005, &opt));
-        NE(bbAUCMetric(vm, &metric));
-        NE(bbCompileSeqModule(&ctx, p, x, y, layers, loss_layer, opt, metric,
-                              r));
+        NE(bbOptNew(vm, BB_OPT_SGD, 0.005, &m->opt));
+        NE(bbAUCMetric(vm, &m->metric));
+        NE(bbCompileSeqModule(&ctx, p, m));
 
         bbProgDump(p, &s);
         printf("%s", s);
 
         float auc;
-        NE(metric->ops.summary(metric, &auc, BB_FLAG_RESET));
+        NE(m->metric->ops.summary(m->metric, &auc, BB_FLAG_RESET));
         printf("auc: %f", auc);
 
 cleanup:
-
         sdsFree(s);
-        bbOptFree(opt);
-        for (size_t i = 0; i < vecSize(layers); i++) {
-                bbLayerFree(layers[i]);
-        }
-        bbLayerFree(loss_layer);
-        bbLayerFree(metric);
-        vecFree(layers);
+        bbSeqModuleFree(m);
         bbProgFree(p);
-        srng64Free(r);
         vmFree(vm);
         return OK;
 }

@@ -126,10 +126,19 @@ void    bbOptFree(struct bb_opt_t *);
 // Module APIs.  // module.c
 // -----------------------------------------------------------------------------
 
+struct bb_seq_module_t {
+        int x;
+        int y;
+        vec_t(struct bb_layer_t *) layers;  // owned.
+        struct bb_layer_t *loss;            // owned.
+        struct bb_opt_t *  opt;             // owned.
+        struct bb_layer_t *metric;          // owned.
+        struct srng64_t *  r;               // owned.
+};
+
+void bbSeqModuleFree(struct bb_seq_module_t *);
+
 error_t bbCompileSeqModule(const struct bb_context_t *ctx,
-                           struct bb_program_t *p, int x, int y,
-                           vec_t(struct bb_layer_t *) layers,
-                           struct bb_layer_t *loss, struct bb_opt_t *opt,
-                           struct bb_layer_t *metric, struct srng64_t *r);
+                           struct bb_program_t *p, struct bb_seq_module_t *);
 
 #endif

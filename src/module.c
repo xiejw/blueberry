@@ -18,13 +18,33 @@ static void vecExtend(vec_t(int) * dst, vec_t(int) src)
         vecSetSize(*dst, old_size + inc);
 }
 
+void
+bbSeqModuleFree(struct bb_seq_module_t *m)
+{
+        bbLayerFree(m->loss);
+        bbOptFree(m->opt);
+        bbLayerFree(m->metric);
+        srng64Free(m->r);
+
+        for (size_t i = 0; i < vecSize(m->layers); i++) {
+                bbLayerFree(m->layers[i]);
+        }
+        vecFree(m->layers);
+        free(m);
+}
+
 error_t
 bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
-                   int x, int y, vec_t(struct bb_layer_t *) layers,
-                   struct bb_layer_t *loss, struct bb_opt_t *opt,
-
-                   struct bb_layer_t *metric, struct srng64_t *r)
+                   struct bb_seq_module_t *m)
 {
+        int x                             = m->x;
+        int y                             = m->y;
+        vec_t(struct bb_layer_t *) layers = m->layers;
+        struct bb_layer_t *loss           = m->loss;
+        struct bb_opt_t *  opt            = m->opt;
+        struct bb_layer_t *metric         = m->metric;
+        struct srng64_t *  r              = m->r;
+
         size_t  num_layers = vecSize(layers);
         error_t err        = OK;
         vec_t(int) inputs  = vecNew();
