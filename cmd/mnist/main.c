@@ -7,6 +7,11 @@
 // Helper Prototype.
 // -----------------------------------------------------------------------------
 
+#include "../../mlvm/cmd/mnist/mnist.h"
+
+static error_t prepareData(float32_t* x_data, size_t x_size, float32_t* y_data,
+                           size_t y_size);
+
 #define NE(err) _NE_IMPL(err, __FILE__, __LINE__)
 
 #define _NE_IMPL(err, file, line)                                          \
@@ -23,6 +28,10 @@
 #define IMAGE_SIZE   (28 * 28)
 #define LABEL_SIZE   (10)
 
+static unsigned char* images   = NULL;
+static unsigned char* labels   = NULL;
+static size_t         it_count = 0;
+
 // -----------------------------------------------------------------------------
 // Main.
 // -----------------------------------------------------------------------------
@@ -34,6 +43,10 @@ main()
         struct bb_program_t*    p   = bbProgNew();
         sds_t                   s   = sdsEmpty();
         struct bb_seq_module_t* m   = bbSeqModuleNew();
+
+        // ---------------------------------------------------------------------
+        // Compile the model.
+        // ---------------------------------------------------------------------
 
         m->r = srng64New(123);
 
@@ -91,14 +104,96 @@ main()
         bbProgDump(p, &s);
         printf("%s", s);
 
+        // ---------------------------------------------------------------------
+        // Fetch inputs.
+        // ---------------------------------------------------------------------
+        float32_t *x_data, *y_data;
+        {
+                NE(vmTensorData(vm, m->x, (void**)&x_data));
+                NE(vmTensorData(vm, m->y, (void**)&y_data));
+        }
+
+        NE(prepareData(x_data,
+                       /*x_size=*/sp_x->size, y_data,
+                       /*y_size=*/sp_y->size));
+        // // for (int ep = 0; ep < 12; ep++) {
+        // for (int i = 0; i < TOTOL_IMAGES / BATCH_SIZE; i++) {
+
+        //         NE(vmBatch(vm, sizeof(prog) / sizeof(struct oparg_t),
+        //                                 prog));
+        // }
+
         float auc;
         NE(m->metric->ops.summary(m->metric, &auc, BB_FLAG_RESET));
         printf("auc: %f", auc);
 
 cleanup:
+        if (images != NULL) free(images);
+        if (labels != NULL) free(labels);
         sdsFree(s);
         bbSeqModuleFree(m);
         bbProgFree(p);
         vmFree(vm);
+        return OK;
+}
+
+static error_t
+prepareMnistData(float32_t* x_data, size_t x_size, float32_t* y_data,
+                 size_t y_size)
+{
+        if (images == NULL) {
+                error_t err = readMnistTrainingImages(&images);
+                if (err) {
+                        return err;
+                }
+
+                err = readMnistTrainingLabels(&labels);
+                if (err) {
+                        return err;
+                }
+                printf("sample label %d -- image:\n", (int)*labels);
+                printMnistImage(images);
+                printf("smaple label %d -- image:\n", (int)*(labels + 1));
+                printMnistImage(images + 28 * 28);
+        }
+
+        size_t bs = x_size / 28 / 28;
+        assert(bs * LABEL_SIZE == y_size);
+
+        unsigned char* buf = images + it_count * IMAGE_SIZE;
+        for (size_t i = 0; i < x_size; i++) {
+                x_data[i] = ((float32_t)buf[i]) / 256;
+        }
+
+        buf = labels + it_count;
+        for (size_t i = 0; i < bs; i++) {
+                int tgt = buf[i];
+                assert(tgt < LABEL_SIZE);
+                size_t offset = i * LABEL_SIZE;
+                for (size_t j = 0; j < LABEL_SIZE; j++) {
+                        y_data[offset + j] = j == tgt ? 1 : 0;
+                }
+        }
+
+        it_count += bs;
+        return OK;
+}
+
+error_t
+prepareData(float32_t* x_data, size_t x_size, float32_t* y_data, size_t y_size)
+{
+        error_t err;
+        // printf("reading real minis data.\n");
+        if ((err = prepareMnistData(x_data, x_size, y_data, y_size))) {
+                if (images != NULL) {
+                        free(images);
+                        images = NULL;
+                }
+                if (labels != NULL) {
+                        free(labels);
+                        labels = NULL;
+                }
+                return err;
+        }
         return OK;
 }
