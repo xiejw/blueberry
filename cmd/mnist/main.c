@@ -44,6 +44,8 @@ main()
         sds_t                   s   = sdsEmpty();
         struct bb_seq_module_t* m   = bbSeqModuleNew();
 
+        int             prog_count;
+        struct oparg_t* prog = NULL;
         // ---------------------------------------------------------------------
         // Compile the model.
         // ---------------------------------------------------------------------
@@ -97,7 +99,7 @@ main()
 
         m->loss = vecPopBack(m->layers);
 
-        NE(bbOptNew(vm, BB_OPT_SGD, 0.005, &m->opt));
+        NE(bbOptNew(vm, BB_OPT_SGD, 0.001, &m->opt));
         NE(bbAUCMetric(vm, &m->metric));
         NE(bbCompileSeqModule(&ctx, p, m));
 
@@ -113,21 +115,29 @@ main()
                 NE(vmTensorData(vm, m->y, (void**)&y_data));
         }
 
-        NE(prepareData(x_data,
-                       /*x_size=*/sp_x->size, y_data,
-                       /*y_size=*/sp_y->size));
-        // // for (int ep = 0; ep < 12; ep++) {
-        // for (int i = 0; i < TOTOL_IMAGES / BATCH_SIZE; i++) {
+        // ---------------------------------------------------------------------
+        // Compile to Batch Ops.
+        // ---------------------------------------------------------------------
+        NE(bbProgCompileToBatchOps(p, &prog_count, &prog));
 
-        //         NE(vmBatch(vm, sizeof(prog) / sizeof(struct oparg_t),
-        //                                 prog));
-        // }
-
-        float auc;
-        NE(m->metric->ops.summary(m->metric, &auc, BB_FLAG_RESET));
-        printf("auc: %f", auc);
+        // ---------------------------------------------------------------------
+        // Run.
+        // ---------------------------------------------------------------------
+        for (int ep = 0; ep < 12; ep++) {
+                for (int i = 0; i < TOTOL_IMAGES / BATCH_SIZE; i++) {
+                        NE(prepareData(x_data,
+                                       /*x_size=*/sp_x->size, y_data,
+                                       /*y_size=*/sp_y->size));
+                        NE(vmBatch(vm, prog_count, prog));
+                }
+                float auc;
+                NE(m->metric->ops.summary(m->metric, &auc, BB_FLAG_RESET));
+                printf("epoch: %2d auc: %f\n", ep + 1, auc);
+                it_count = 0;
+        }
 
 cleanup:
+        if (prog) free(prog);
         if (images != NULL) free(images);
         if (labels != NULL) free(labels);
         sdsFree(s);
@@ -183,7 +193,6 @@ error_t
 prepareData(float32_t* x_data, size_t x_size, float32_t* y_data, size_t y_size)
 {
         error_t err;
-        // printf("reading real minis data.\n");
         if ((err = prepareMnistData(x_data, x_size, y_data, y_size))) {
                 if (images != NULL) {
                         free(images);

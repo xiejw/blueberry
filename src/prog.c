@@ -53,6 +53,33 @@ bbProgAppend(struct bb_program_t *p, struct oparg_t *op)
                 tail->next = inst;
                 p->tail    = inst;
         }
+
+        p->count++;
+}
+
+error_t
+bbProgCompileToBatchOps(struct bb_program_t *p, int *out_count,
+                        struct oparg_t **out)
+{
+        size_t count = p->count;
+        if (count == 0) {
+                *out_count = 0;
+                *out       = NULL;
+                return OK;
+        }
+
+        struct oparg_t *ops = malloc(count * sizeof(struct oparg_t));
+
+        struct bb_inst_t *curr = p->head;
+        for (size_t i = 0; i < count; i++) {
+                assert(curr != NULL);
+                *(ops + i) = curr->op;
+                curr       = curr->next;
+        }
+
+        *out_count = count;
+        *out       = ops;
+        return OK;
 }
 
 static void

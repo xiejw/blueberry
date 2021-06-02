@@ -28,6 +28,7 @@ struct bb_program_t {
         vec_t(int) weights;
         vec_t(int) grads;
         vec_t(int) states;
+        int               count;
         struct bb_inst_t *head;
         struct bb_inst_t *tail;
 };
@@ -36,6 +37,8 @@ struct bb_program_t *bbProgNew();
 void                 bbProgFree(struct bb_program_t *);
 void                 bbProgAppend(struct bb_program_t *, struct oparg_t *);
 void                 bbProgDump(struct bb_program_t *, sds_t *);
+error_t              bbProgCompileToBatchOps(struct bb_program_t *, int *count,
+                                             struct oparg_t **out);
 
 // -----------------------------------------------------------------------------
 // Constants.
