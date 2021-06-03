@@ -122,6 +122,11 @@ struct bb_opt_t {
         void *private_data;
 };
 
+struct bb_opt_rmsprop_config_t {
+        float rho;
+        float epsilon;
+};
+
 error_t bbOptNew(struct vm_t *vm, int type, float32_t lr, void *cfg,
                  struct bb_opt_t **);
 error_t bbOptInit(struct bb_opt_t *, vec_t(int) weights, vec_t(int) grads);
