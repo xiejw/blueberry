@@ -99,7 +99,7 @@ main()
 
         m->loss = vecPopBack(m->layers);
 
-        NE(bbOptNew(vm, BB_OPT_SGD, 0.001, &m->opt));
+        NE(bbOptNew(vm, BB_OPT_SGD, 0.001, /*config=*/NULL, &m->opt));
         NE(bbAUCMetric(vm, &m->metric));
         NE(bbCompileSeqModule(&ctx, p, m));
 
