@@ -335,8 +335,8 @@ _bbOptAdamPropInit(struct bb_opt_t *opt)
 
         opt->states[data->b1_i] = vmTensorNew(vm, F32, sp);
         opt->states[data->b2_i] = vmTensorNew(vm, F32, sp);
-        opt->states[data->s1_i] = vmTensorNew(vm, F32, sp);
-        opt->states[data->s2_i] = vmTensorNew(vm, F32, sp);
+        opt->ivs[data->s1_i]    = vmTensorNew(vm, F32, sp);
+        opt->ivs[data->s2_i]    = vmTensorNew(vm, F32, sp);
 
         spDecRef(sp);
 
@@ -418,17 +418,18 @@ _bbOptAdamPropApply(struct bb_opt_t *opt, struct bb_program_t *p)
                                               .f    = epsilon};
         const struct opopt_t opopt_lr = {.mode = OPT_MODE_F_BIT, .f = opt->lr};
 
-        int *w  = opt->weights;
-        int *g  = opt->grads;
+        int *w = opt->weights;
+        int *g = opt->grads;
+
         int *m1 = opt->states + data->m1_i;
         int *m2 = opt->states + data->m2_i;
-        int *t1 = opt->states + data->t1_i;
-        int *t2 = opt->states + data->t2_i;
+        int  b1 = opt->states[data->b1_i];
+        int  b2 = opt->states[data->b2_i];
 
-        int b1 = opt->states[data->b1_i];
-        int b2 = opt->states[data->b2_i];
-        int s1 = opt->states[data->s1_i];
-        int s2 = opt->states[data->s2_i];
+        int *t1 = opt->ivs + data->t1_i;
+        int *t2 = opt->ivs + data->t2_i;
+        int  s1 = opt->ivs[data->s1_i];
+        int  s2 = opt->ivs[data->s2_i];
 
         bbProgAppend(p, &(struct oparg_t){OP_MUL, b1, b1, -1, 1, opopt_beta_1});
         bbProgAppend(p, &(struct oparg_t){OP_MUL, b2, b2, -1, 1, opopt_beta_2});

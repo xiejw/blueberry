@@ -104,10 +104,15 @@ main()
         // SGD
         // NE(bbOptNew(vm, BB_OPT_SGD, 0.001, /*config=*/NULL, &m->opt));
         // RMSProp
-        NE(bbOptNew(
-            vm, BB_OPT_RMSPROP, 0.001,
-            &(struct bb_opt_rmsprop_config_t){.rho = 0.9, .epsilon = 1e-6},
-            &m->opt));
+        // NE(bbOptNew(
+        //     vm, BB_OPT_RMSPROP, 0.001,
+        //     &(struct bb_opt_rmsprop_config_t){.rho = 0.9, .epsilon = 1e-6},
+        //     &m->opt));
+        // Adam
+        NE(bbOptNew(vm, BB_OPT_ADAM, 0.001,
+                    &(struct bb_opt_adam_config_t){
+                        .beta_1 = 0.9, .beta_2 = 0.999, .epsilon = 1e-8},
+                    &m->opt));
         NE(bbAUCMetric(vm, &m->metric));
         NE(bbCompileSeqModule(&ctx, p, m));
 
@@ -132,6 +137,7 @@ main()
         // Run.
         // ---------------------------------------------------------------------
         for (int ep = 0; ep < 12; ep++) {
+                // for (int ep = 0; ep < 1; ep++) {
                 for (int i = 0; i < TOTOL_IMAGES / BATCH_SIZE; i++) {
                         NE(prepareData(x_data,
                                        /*x_size=*/sp_x->size, y_data,
