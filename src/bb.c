@@ -51,18 +51,18 @@ bbLayerFree(struct bb_layer_t *p)
 }
 
 error_t
-bbCreateLayers(struct vm_t *vm, struct bb_layer_config_t *layer_configs,
+bbCreateLayers(struct vm_t *vm, const struct bb_layer_config_t *layer_configs,
                vec_t(struct bb_layer_t *) * layers)
 {
         error_t            err;
         struct bb_layer_t *layer;
 
-        struct bb_layer_config_t *curr = layer_configs;
+        const struct bb_layer_config_t *curr = layer_configs;
         while (curr->tag != BB_TAG_NULL) {
                 switch (curr->tag) {
                 case BB_TAG_DENSE:
                         err = bbDenseLayer(
-                            vm, (struct bb_dense_config_t *)curr->config,
+                            vm, (const struct bb_dense_config_t *)curr->config,
                             &layer);
                         if (err) {
                                 return errEmitNote("failed to create layer.");
@@ -71,7 +71,7 @@ bbCreateLayers(struct vm_t *vm, struct bb_layer_config_t *layer_configs,
                         break;
                 case BB_TAG_SCEL:
                         err = bbSCELLayer(
-                            vm, (struct bb_scel_config_t *)curr->config,
+                            vm, (const struct bb_scel_config_t *)curr->config,
                             &layer);
                         if (err) {
                                 return errEmitNote("failed to create layer.");

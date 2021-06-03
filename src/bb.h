@@ -4,6 +4,7 @@
 // eva
 #include "adt/sds.h"
 #include "adt/vec.h"
+#include "base/defs.h"
 #include "base/error.h"
 
 // mlvm
@@ -22,12 +23,12 @@ struct bb_inst_t {
 };
 
 struct bb_program_t {
-        vec_t(int) inputs;
-        vec_t(int) labels;
-        vec_t(int) outputs;
-        vec_t(int) weights;
-        vec_t(int) grads;
-        vec_t(int) states;
+        vec_t(int) inputs;   // ele unowned.
+        vec_t(int) labels;   // ele unowned.
+        vec_t(int) outputs;  // ele unowned.
+        vec_t(int) weights;  // ele unowned.
+        vec_t(int) grads;    // ele unowned.
+        vec_t(int) states;   // ele unowned.
         int               count;
         struct bb_inst_t *head;
         struct bb_inst_t *tail;
@@ -36,9 +37,9 @@ struct bb_program_t {
 struct bb_program_t *bbProgNew();
 void                 bbProgFree(struct bb_program_t *);
 void                 bbProgAppend(struct bb_program_t *, struct oparg_t *);
-void                 bbProgDump(struct bb_program_t *, sds_t *);
-error_t              bbProgCompileToBatchOps(struct bb_program_t *, int *count,
-                                             struct oparg_t **out);
+void                 bbProgDump(struct bb_program_t *, _mut_ sds_t *);
+error_t bbProgCompileToBatchOps(struct bb_program_t *, _out_ int *count,
+                                _out_ struct oparg_t **out);
 
 // -----------------------------------------------------------------------------
 // Constants.
@@ -78,16 +79,16 @@ struct bb_layer_operations_t {
                         struct srng64_t *);
         error_t (*release)(struct bb_layer_t *);
 
-        error_t (*weights)(struct bb_layer_t *, vec_t(int) * tds);
-        error_t (*grads)(struct bb_layer_t *, vec_t(int) * tds);
-        error_t (*states)(struct bb_layer_t *, vec_t(int) * tds);
+        error_t (*weights)(struct bb_layer_t *, _mut_ vec_t(int) * tds);
+        error_t (*grads)(struct bb_layer_t *, _mut_ vec_t(int) * tds);
+        error_t (*states)(struct bb_layer_t *, _mut_ vec_t(int) * tds);
 
         error_t (*jit)(struct bb_layer_t *, const struct bb_context_t *,
-                       struct bb_program_t *, int direction,
-                       const vec_t(int) inputs, vec_t(int) * outputs);
+                       struct bb_program_t *, int     direction,
+                       const vec_t(int) inputs, _mut_ vec_t(int) * outputs);
 
         // metric only
-        error_t (*summary)(struct bb_layer_t *, void *data, int flag);
+        error_t (*summary)(struct bb_layer_t *, _mut_ void *data, int flag);
 };
 
 // Same for Layer, Loss, Metric.
@@ -97,7 +98,7 @@ struct bb_layer_t {
         vec_t(int) states;   // grads for weights in order.
         vec_t(int) ivs;      // intermediate values.
 
-        struct vm_t *                vm;
+        struct vm_t *                vm;  // unowned.
         struct bb_layer_operations_t ops;
 };
 
@@ -113,13 +114,13 @@ void bbLayerFree(struct bb_layer_t *);
 
 struct bb_opt_t {
         float32_t    lr;
-        struct vm_t *vm;
+        struct vm_t *vm;  // unowned.
         int          type;
         vec_t(int) weights;  // unowned.
         vec_t(int) grads;    // unowned
         vec_t(int) states;   // owned.
-        void *config;
-        void *private_data;
+        void *config;        // owned.
+        void *private_data;  // owned.
 };
 
 struct bb_opt_rmsprop_config_t {
@@ -128,7 +129,7 @@ struct bb_opt_rmsprop_config_t {
 };
 
 error_t bbOptNew(struct vm_t *vm, int type, float32_t lr, void *cfg,
-                 struct bb_opt_t **);
+                 _out_ struct bb_opt_t **);
 error_t bbOptInit(struct bb_opt_t *, vec_t(int) weights, vec_t(int) grads);
 error_t bbOptApply(struct bb_opt_t *, struct bb_program_t *);
 void    bbOptFree(struct bb_opt_t *);
@@ -165,10 +166,11 @@ error_t bbCompileSeqModule(const struct bb_context_t *ctx,
 
 struct bb_layer_config_t {
         int   tag;
-        void *config;
+        void *config;  // unowned
 };
 
-error_t bbCreateLayers(struct vm_t *vm, struct bb_layer_config_t *layer_configs,
-                       vec_t(struct bb_layer_t *) * layers);
+error_t bbCreateLayers(struct vm_t *                   vm,
+                       const struct bb_layer_config_t *layer_configs,
+                       _out_ vec_t(struct bb_layer_t *) * layers);
 
 #endif
