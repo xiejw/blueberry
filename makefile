@@ -17,11 +17,6 @@ FMT_FOLDERS     =  ${SRC} ${CMD}  # required by eva.mk
 CFLAGS          += -I${SRC} -I${EVA_PATH}/src -I${MLVM_PATH}/src -g
 LDFLAGS         += ${MLVM_LIB} ${EVA_LIB}
 
-
-ifdef BLIS
-LDFLAGS += ../blis/lib/${BLIS}/libblis.a -pthread
-endif
-
 # ------------------------------------------------------------------------------
 # Libs.
 # ------------------------------------------------------------------------------
