@@ -25,6 +25,7 @@ bbOptNew(struct vm_t *vm, int type, float32_t lr, void *cfg,
         opt->vm   = vm;
         opt->type = type;
 
+        size_t cfg_size;
         if (cfg != NULL) {
                 void *ptr;
                 switch (opt->type) {
@@ -32,9 +33,8 @@ bbOptNew(struct vm_t *vm, int type, float32_t lr, void *cfg,
                         return errNew(
                             "Opt SGD does not need config (expect NULL).");
                 case BB_OPT_RMSPROP:
-                        size_t cfg_size =
-                            sizeof(struct bb_opt_rmsprop_config_t);
-                        ptr = malloc(cfg_size);
+                        cfg_size = sizeof(struct bb_opt_rmsprop_config_t);
+                        ptr      = malloc(cfg_size);
                         memcpy(ptr, cfg, cfg_size);
                         opt->config = ptr;
                         break;
@@ -197,7 +197,7 @@ error_t
 _bbOptRMSPropApply(struct bb_opt_t *opt, struct bb_program_t *p)
 {
         size_t weights_count =
-            ((struct bb_opt_sgd_t *)opt->private_data)->weights_count;
+            ((struct bb_opt_rmsprop_t *)opt->private_data)->weights_count;
 
         // math:
         //
@@ -247,5 +247,179 @@ _bbOptRMSPropApply(struct bb_opt_t *opt, struct bb_program_t *p)
                 bbProgAppend(p, &(struct oparg_t){OP_MINUS, weights[i], weights[i], ivs[i],   0});
                 // clang-format on
         }
+        return OK;
+}
+
+// -----------------------------------------------------------------------------
+// Adam Impl
+// -----------------------------------------------------------------------------
+struct bb_opt_adam_t {
+        size_t weights_count;
+        // index for state
+        size_t m1_i;  // zero init
+        size_t m2_i;  // zero init
+        size_t b1_i;  // one init
+        size_t b2_i;  // one init
+        // index for iv
+        size_t t1_i;
+        size_t t2_i;
+        size_t s1_i;
+        size_t s2_i;
+};
+
+error_t
+_bbOptAdamPropInit(struct bb_opt_t *opt)
+{
+        struct bb_opt_adam_t *data = malloc(sizeof(struct bb_opt_adam_t));
+
+        int weights_count   = vecSize(opt->weights);
+        data->weights_count = weights_count;
+
+        // need two states for each weight and two scalar for betas (in total).
+        vecReserve(opt->states, 2 * weights_count + 2);
+        vecSetSize(opt->states, 2 * weights_count + 2);
+        data->m1_i = 0;
+        data->m2_i = weights_count;
+        data->b1_i = 2 * weights_count;
+        data->b2_i = 2 * weights_count + 1;
+
+        // need two ivs for each weight and two scalars.
+        vecReserve(opt->ivs, 2 * weights_count + 2);
+        vecSetSize(opt->ivs, 2 * weights_count + 2);
+        data->t1_i = 0;
+        data->t2_i = weights_count;
+        data->s1_i = 2 * weights_count;
+        data->s2_i = 2 * weights_count + 1;
+
+        error_t         err;
+        struct vm_t *   vm = opt->vm;
+        struct shape_t *sp;
+        size_t          offset = weights_count;
+        for (size_t i = 0; i < weights_count; i++) {
+                err = vmTensorInfo(vm, opt->weights[i], /*dtype=*/NULL, &sp);
+                if (err) return errEmitNote("failed to obtain weight shape.");
+
+                // state
+
+                int state = vmTensorNew(vm, F32, sp);
+                err       = vmExec(vm, OP_FILL, NULL, state, -1, -1);
+                if (err) return errEmitNote("failed to zero opt state.");
+                opt->states[i] = state;
+
+                state = vmTensorNew(vm, F32, sp);
+                err   = vmExec(vm, OP_FILL, NULL, state, -1, -1);
+                if (err) return errEmitNote("failed to zero opt state.");
+                opt->states[offset + i] = state;
+
+                // iv
+
+                opt->ivs[i]          = vmTensorNew(vm, F32, sp);
+                opt->ivs[offset + i] = vmTensorNew(vm, F32, sp);
+        }
+
+        sp = R1S(vm, 1);
+
+        opt->states[data->b1_i] = vmTensorNew(vm, F32, sp);
+        opt->states[data->b2_i] = vmTensorNew(vm, F32, sp);
+        opt->states[data->s1_i] = vmTensorNew(vm, F32, sp);
+        opt->states[data->s2_i] = vmTensorNew(vm, F32, sp);
+
+        spDecRef(sp);
+
+        struct opopt_t opopt_one = {.mode = OPT_MODE_F_BIT, .f = 1};
+        err = vmExec(vm, OP_FILL, &opopt_one, opt->states[data->b1_i], -1, -1);
+        if (err) return errEmitNote("failed to init opt state.");
+        err = vmExec(vm, OP_FILL, &opopt_one, opt->states[data->b2_i], -1, -1);
+        if (err) return errEmitNote("failed to init opt state.");
+
+        opt->private_data = data;
+        return OK;
+}
+
+error_t
+_bbOptAdamPropApply(struct bb_opt_t *opt, struct bb_program_t *p)
+{
+        //         size_t weights_count =
+        //             ((struct bb_opt_adam_t
+        //             *)opt->private_data)->weights_count;
+        //
+        //         // math:
+        //         //
+        //         //     m_t  = beta_1 * m_{t-1} + (1 - beta_1) * g_t
+        //         //     v_t  = beta_2 * v_{t-1} + (1 - beta_2) * g_t^2
+        //         //
+        //         //     mh_t = m_t / (1 - beta_1^t)
+        //         //     vh_t = v_t / (1 - beta_2^t)
+        //         //
+        //         //     w_t  = w_{t-1}  - lr / (sqrt(vh_t) + epsilon) * mh^t
+        //         //
+        //         // mlvm code:
+        //         //
+        //         //     ivs: t1 t2 s
+        //         //
+        //         //     b1 = b1 * beta_1
+        //         //     b2 = b2 * beta_2
+        //         //
+        //         //     m1 = beta_1 * m1
+        //         //     v1 = beta_2 * v1
+        //         //
+        //         //     t1 = (1 - beta_1) g
+        //         //     t2 = g * g
+        //         //     t2 = (1 - beta_2) * t2
+        //         //
+        //         //     m1 = m1 + t1
+        //         //     m2 = m2 + t2
+        //         //
+        //         //     s1 = 1 - b1
+        //         //     t1 = m1 / s1
+        //         //     s2 = 1 - b2
+        //         //     t2 = m2 / s2
+        //         //
+        //         //     t2 = 1/(sqrt(t2) + epsilon)
+        //         //     t2 = t2 * lr
+        //         //     t1 = t1 * t2
+        //         //     w = w - t1
+        //
+        //         struct bb_opt_rmsprop_config_t *cfg =
+        //             (struct bb_opt_rmsprop_config_t *)opt->config;
+        //
+        //         assert(cfg != NULL);
+        //         float rho = cfg->rho;
+        //         assert(rho < 1 && rho > 0);
+        //         float epsilon = cfg->epsilon;
+        //         assert(epsilon > 0);
+        //
+        //         struct opopt_t opopt_rho         = {.mode = OPT_MODE_F_BIT,
+        //         .f = rho}; struct opopt_t opopt_1_minus_rho = {.mode =
+        //         OPT_MODE_F_BIT,
+        //                                             .f    = (1 - rho)};
+        //         struct opopt_t opopt_epsilon = {.mode = OPT_MODE_F_BIT, .f =
+        //         epsilon}; struct opopt_t opopt_lr      = {.mode =
+        //         OPT_MODE_F_BIT, .f = opt->lr};
+        //
+        //         vec_t(int) weights = opt->weights;
+        //         vec_t(int) grads   = opt->grads;
+        //         vec_t(int) states  = opt->states;
+        //         vec_t(int) ivs     = opt->ivs;
+        //
+        //         for (size_t i = 0; i < weights_count; i++) {
+        //                 // clang-format off
+        //                 bbProgAppend(p, &(struct oparg_t){OP_MUL, states[i],
+        //                 states[i],  -1,       1, opopt_rho}); bbProgAppend(p,
+        //                 &(struct oparg_t){OP_MUL,   ivs[i],     grads[i],
+        //                 grads[i], 0}); bbProgAppend(p, &(struct
+        //                 oparg_t){OP_MUL,   ivs[i],     ivs[i],     -1, 1,
+        //                 opopt_1_minus_rho}); bbProgAppend(p, &(struct
+        //                 oparg_t){OP_ADD,   states[i],  states[i],  ivs[i],
+        //                 0}); bbProgAppend(p, &(struct oparg_t){OP_ISQRT,
+        //                 ivs[i],     states[i],  ivs[i],   1, opopt_epsilon});
+        //                 bbProgAppend(p, &(struct oparg_t){OP_MUL,   ivs[i],
+        //                 ivs[i],     -1,       1, opopt_lr}); bbProgAppend(p,
+        //                 &(struct oparg_t){OP_MUL,   ivs[i],     ivs[i],
+        //                 grads[i], 0}); bbProgAppend(p, &(struct
+        //                 oparg_t){OP_MINUS, weights[i], weights[i], ivs[i],
+        //                 0});
+        //                 // clang-format on
+        //         }
         return OK;
 }

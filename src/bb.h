@@ -60,6 +60,7 @@ error_t bbProgCompileToBatchOps(struct bb_program_t *, _out_ int *count,
 
 #define BB_OPT_SGD     0
 #define BB_OPT_RMSPROP 1
+#define BB_OPT_ADAM    2
 
 #define BB_FLAG_NONE  0
 #define BB_FLAG_RESET 1
@@ -125,8 +126,14 @@ struct bb_opt_t {
 };
 
 struct bb_opt_rmsprop_config_t {
-        float rho;
-        float epsilon;
+        float rho;      // suggested 0.9
+        float epsilon;  // suggested 1e-8
+};
+
+struct bb_opt_adam_config_t {
+        float beta_1;   // suggested 0.9
+        float beta_2;   // suggested 0.999
+        float epsilon;  // suggested 1e-8
 };
 
 error_t bbOptNew(struct vm_t *vm, int type, float32_t lr, void *cfg,
