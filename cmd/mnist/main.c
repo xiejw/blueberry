@@ -141,6 +141,7 @@ main()
                 float auc;
                 NE(m->metric->ops.summary(m->metric, &auc, BB_FLAG_RESET));
                 printf("epoch: %2d (training) auc: %f\n", ep + 1, auc);
+                fflush(stdout);
                 it_count = 0;
         }
 
