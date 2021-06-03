@@ -119,6 +119,7 @@ struct bb_opt_t {
         vec_t(int) weights;  // unowned.
         vec_t(int) grads;    // unowned
         vec_t(int) states;   // owned.
+        vec_t(int) ivs;      // owned.
         void *config;        // owned.
         void *private_data;  // owned.
 };

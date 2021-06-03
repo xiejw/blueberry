@@ -123,7 +123,8 @@ main()
         // ---------------------------------------------------------------------
         // Run.
         // ---------------------------------------------------------------------
-        for (int ep = 0; ep < 12; ep++) {
+        // for (int ep = 0; ep < 12; ep++) {
+        for (int ep = 0; ep < 1; ep++) {
                 for (int i = 0; i < TOTOL_IMAGES / BATCH_SIZE; i++) {
                         NE(prepareData(x_data,
                                        /*x_size=*/sp_x->size, y_data,
