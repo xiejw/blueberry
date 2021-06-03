@@ -26,6 +26,7 @@ BB_LIB          = ${BUILD}/bb_bb.o ${BUILD}/bb_prog.o ${BUILD}/bb_module.o \
 
 ALL_LIBS        = ${BB_LIB}
 
+
 # ------------------------------------------------------------------------------
 # Actions.
 # ------------------------------------------------------------------------------
@@ -37,10 +38,16 @@ compile: ${BUILD} ${ALL_LIBS}
 ${BUILD}/bb_%.o: ${SRC}/%.c ${BB_HEADER}
 	${EVA_CC} -o $@ -c $<
 
+DEP_FLAGS += RELEASE=1 -B
+
+ifdef BLIS
+DEP_FLAGS += BLIS=1
+endif
+
 compile_all:
-	make -C ../eva RELEASE=1 -B libeva
-	make -C ../mlvm RELEASE=1 -B libmlvm
-	make RELEASE=1 -B
+	make -C ../eva ${DEP_FLAGS} libeva
+	make -C ../mlvm ${DEP_FLAGS} libmlvm
+	make ${DEP_FLAGS}
 
 # ------------------------------------------------------------------------------
 # Cmd.
