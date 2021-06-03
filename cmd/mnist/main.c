@@ -23,10 +23,12 @@ static error_t prepareData(float32_t* x_data, size_t x_size, float32_t* y_data,
 // -----------------------------------------------------------------------------
 // MNIST.
 // -----------------------------------------------------------------------------
-#define TOTOL_IMAGES 60000
-#define BATCH_SIZE   32
-#define IMAGE_SIZE   (28 * 28)
-#define LABEL_SIZE   (10)
+#define TOTOL_IMAGES  60000
+#define BATCH_SIZE    32
+#define IMAGE_SIZE    (28 * 28)
+#define LABEL_SIZE    (10)
+#define HIDDEN_SIZE_1 256
+#define HIDDEN_SIZE_2 128
 
 static unsigned char* images   = NULL;
 static unsigned char* labels   = NULL;
@@ -66,7 +68,7 @@ main()
                     .config =
                         &(struct bb_dense_config_t){
                             .input_dim   = (IMAGE_SIZE),
-                            .output_dim  = 64,
+                            .output_dim  = HIDDEN_SIZE_1,
                             .kernel_init = BB_INIT_STD_NORMAL,
                             .bias_init   = BB_INIT_ZERO,
                             .actn        = BB_ACTN_RELU},
@@ -75,8 +77,8 @@ main()
                     .tag = BB_TAG_DENSE,
                     .config =
                         &(struct bb_dense_config_t){
-                            .input_dim   = 64,
-                            .output_dim  = 64,
+                            .input_dim   = HIDDEN_SIZE_1,
+                            .output_dim  = HIDDEN_SIZE_2,
                             .kernel_init = BB_INIT_STD_NORMAL,
                             .bias_init   = BB_INIT_ZERO,
                             .actn        = BB_ACTN_RELU},
@@ -85,7 +87,7 @@ main()
                     .tag = BB_TAG_DENSE,
                     .config =
                         &(struct bb_dense_config_t){
-                            .input_dim   = 64,
+                            .input_dim   = HIDDEN_SIZE_2,
                             .output_dim  = LABEL_SIZE,
                             .kernel_init = BB_INIT_STD_NORMAL,
                             .bias_init   = BB_INIT_NULL,
