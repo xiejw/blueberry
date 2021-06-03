@@ -29,11 +29,13 @@ bbOptNew(struct vm_t *vm, int type, float32_t lr, void *cfg,
                 void *ptr;
                 switch (opt->type) {
                 case BB_OPT_SGD:
-                        return errNew("Opt SGD does not need config.");
+                        return errNew(
+                            "Opt SGD does not need config (expect NULL).");
                 case BB_OPT_RMSPROP:
-                        ptr = malloc(sizeof(struct bb_opt_rmsprop_config_t));
-                        memcpy(ptr, cfg,
-                               sizeof(struct bb_opt_rmsprop_config_t));
+                        size_t cfg_size =
+                            sizeof(struct bb_opt_rmsprop_config_t);
+                        ptr = malloc(cfg_size);
+                        memcpy(ptr, cfg, cfg_size);
                         opt->config = ptr;
                         break;
                 default:
@@ -143,10 +145,11 @@ _bbOptSGDApply(struct bb_opt_t *opt, struct bb_program_t *p)
         // w = w - g
 
         for (size_t i = 0; i < weights_count; i++) {
-                bbProgAppend(p, &(struct oparg_t){OP_MUL, grads[i], grads[i],
-                                                  -1, 1, opopt});
-                bbProgAppend(p, &(struct oparg_t){OP_MINUS, weights[i],
-                                                  weights[i], grads[i], 0});
+                // clang-format off
+                // reuse grad (bad idea?)
+                bbProgAppend(p, &(struct oparg_t){OP_MUL,   grads[i],   grads[i],   -1,       1, opopt});
+                bbProgAppend(p, &(struct oparg_t){OP_MINUS, weights[i], weights[i], grads[i], 0});
+                // clang-format on
         }
         return OK;
 }
@@ -196,14 +199,21 @@ _bbOptRMSPropApply(struct bb_opt_t *opt, struct bb_program_t *p)
         size_t weights_count =
             ((struct bb_opt_sgd_t *)opt->private_data)->weights_count;
 
-        // s = rho * s
-        // t1 = g * g
-        // t1 = (1 - rho) * t1
-        // s = s + t1
-        // t1 = 1/sqrt(s + epsilon)
-        // t1 = t1 * lr
-        // t1 = t1 * g
-        // w = w - t1
+        // math:
+        //
+        //     s_t  = rho * s_{t-1} + (1 - rho) * g_t^2
+        //     w_t  = w_{t-1}  - lr / sqrt(s_t + epsilon) * g_t
+        //
+        // mlvm code:
+        //
+        //     s = rho * s
+        //     t1 = g * g
+        //     t1 = (1 - rho) * t1
+        //     s = s + t1
+        //     t1 = 1/sqrt(s + epsilon)
+        //     t1 = t1 * lr
+        //     t1 = t1 * g
+        //     w = w - t1
 
         struct bb_opt_rmsprop_config_t *cfg =
             (struct bb_opt_rmsprop_config_t *)opt->config;
@@ -226,24 +236,16 @@ _bbOptRMSPropApply(struct bb_opt_t *opt, struct bb_program_t *p)
         vec_t(int) ivs     = opt->ivs;
 
         for (size_t i = 0; i < weights_count; i++) {
-                bbProgAppend(p, &(struct oparg_t){OP_MUL, states[i], states[i],
-                                                  -1, 1, opopt_rho});
-                bbProgAppend(p, &(struct oparg_t){OP_MUL, ivs[i], grads[i],
-                                                  grads[i], 0});
-                bbProgAppend(p, &(struct oparg_t){OP_MUL, ivs[i], ivs[i], -1, 1,
-                                                  opopt_1_minus_rho});
-                bbProgAppend(p, &(struct oparg_t){OP_ADD, states[i], states[i],
-                                                  ivs[i], 0});
-                bbProgAppend(p, &(struct oparg_t){OP_ISQRT, ivs[i], states[i],
-                                                  ivs[i], 1, opopt_epsilon});
-
-                bbProgAppend(p, &(struct oparg_t){OP_MUL, ivs[i], ivs[i], -1, 1,
-                                                  opopt_lr});
-                bbProgAppend(
-                    p, &(struct oparg_t){OP_MUL, ivs[i], ivs[i], grads[i], 0});
-
-                bbProgAppend(p, &(struct oparg_t){OP_MINUS, weights[i],
-                                                  weights[i], ivs[i], 0});
+                // clang-format off
+                bbProgAppend(p, &(struct oparg_t){OP_MUL,   states[i],  states[i],  -1,       1, opopt_rho});
+                bbProgAppend(p, &(struct oparg_t){OP_MUL,   ivs[i],     grads[i],   grads[i], 0});
+                bbProgAppend(p, &(struct oparg_t){OP_MUL,   ivs[i],     ivs[i],     -1,       1, opopt_1_minus_rho});
+                bbProgAppend(p, &(struct oparg_t){OP_ADD,   states[i],  states[i],  ivs[i],   0});
+                bbProgAppend(p, &(struct oparg_t){OP_ISQRT, ivs[i],     states[i],  ivs[i],   1, opopt_epsilon});
+                bbProgAppend(p, &(struct oparg_t){OP_MUL,   ivs[i],     ivs[i],     -1,       1, opopt_lr});
+                bbProgAppend(p, &(struct oparg_t){OP_MUL,   ivs[i],     ivs[i],     grads[i], 0});
+                bbProgAppend(p, &(struct oparg_t){OP_MINUS, weights[i], weights[i], ivs[i],   0});
+                // clang-format on
         }
         return OK;
 }
