@@ -21,10 +21,26 @@ bbOptNew(struct vm_t *vm, int type, float32_t lr, void *cfg,
         struct bb_opt_t *opt = malloc(sizeof(struct bb_opt_t));
         memset(opt, 0, sizeof(struct bb_opt_t));
 
-        opt->lr     = lr;
-        opt->vm     = vm;
-        opt->type   = type;
-        opt->config = cfg;
+        opt->lr   = lr;
+        opt->vm   = vm;
+        opt->type = type;
+
+        if (cfg != NULL) {
+                void *ptr;
+                switch (opt->type) {
+                case BB_OPT_SGD:
+                        return errNew("Opt SGD does not need config.");
+                case BB_OPT_RMSPROP:
+                        ptr = malloc(sizeof(struct bb_opt_rmsprop_config_t));
+                        memcpy(ptr, cfg,
+                               sizeof(struct bb_opt_rmsprop_config_t));
+                        opt->config = ptr;
+                        break;
+                default:
+                        return errNew("Opt type not supported in (yet): %d",
+                                      opt->type);
+                }
+        }
 
         *out = opt;
         return OK;

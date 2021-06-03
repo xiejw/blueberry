@@ -99,7 +99,13 @@ main()
 
         m->loss = vecPopBack(m->layers);
 
-        NE(bbOptNew(vm, BB_OPT_SGD, 0.001, /*config=*/NULL, &m->opt));
+        // SGD
+        // NE(bbOptNew(vm, BB_OPT_SGD, 0.001, /*config=*/NULL, &m->opt));
+        // RMSProp
+        NE(bbOptNew(
+            vm, BB_OPT_RMSPROP, 0.001,
+            &(struct bb_opt_rmsprop_config_t){.rho = 0.9, .epsilon = 1e-6},
+            &m->opt));
         NE(bbAUCMetric(vm, &m->metric));
         NE(bbCompileSeqModule(&ctx, p, m));
 
@@ -123,8 +129,7 @@ main()
         // ---------------------------------------------------------------------
         // Run.
         // ---------------------------------------------------------------------
-        // for (int ep = 0; ep < 12; ep++) {
-        for (int ep = 0; ep < 1; ep++) {
+        for (int ep = 0; ep < 12; ep++) {
                 for (int i = 0; i < TOTOL_IMAGES / BATCH_SIZE; i++) {
                         NE(prepareData(x_data,
                                        /*x_size=*/sp_x->size, y_data,
