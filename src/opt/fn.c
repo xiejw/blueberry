@@ -1,5 +1,9 @@
 #include "opt/fn.h"
 
+// -----------------------------------------------------------------------------
+// Map Helpers.
+// -----------------------------------------------------------------------------
+
 // a fast map specific for the tensor descriptor. This structure assumes that
 // the input must SSA-like and all tensor descriptor is contiguous.
 struct td_map_t {
@@ -50,6 +54,10 @@ bbTdMapSet(struct td_map_t* map, int td, void* v, int policy, int* existed)
         return OK;
 }
 
+// -----------------------------------------------------------------------------
+// Fn.
+// -----------------------------------------------------------------------------
+
 struct bb_fn_t*
 bbFnNew()
 {
@@ -64,4 +72,15 @@ bbFnFree(struct bb_fn_t* p)
 {
         if (p == NULL) return;
         free(p);
+}
+
+// -----------------------------------------------------------------------------
+// Passes.
+// -----------------------------------------------------------------------------
+
+error_t
+runDCEPass(struct bb_fn_t* fn, void* cfg, int* changed)
+{
+        *changed = 0;
+        return OK;
 }

@@ -8,11 +8,13 @@
 struct bb_fn_t {
         vec_t(int) inputs;
         vec_t(int) outputs;
-        struct bb_inst_t *head;
-        struct bb_inst_t *tail;
+        struct bb_inst_t* head;
+        struct bb_inst_t* tail;
 };
 
-struct bb_fn_t *bbFnNew();
+struct bb_fn_t* bbFnNew();
 void            bbFnFree();
+
+error_t runDCEPass(struct bb_fn_t* fn, void* cfg, int* changed);
 
 #endif
