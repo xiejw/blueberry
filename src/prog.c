@@ -152,6 +152,12 @@ bbProgDump(struct bb_program_t *p, sds_t *s)
                         case OP_MUL:
                                 opname = "OP_MUL";
                                 break;
+                        case OP_DIVIDE:
+                                opname = "OP_DIVIDE";
+                                break;
+                        case OP_ISQRT:
+                                opname = "OP_ISQRT";
+                                break;
                         case OP_MINUS:
                                 opname = "OP_MINUS";
                                 break;
