@@ -38,7 +38,11 @@ compile: ${BUILD} ${ALL_LIBS}
 ${BUILD}/bb_%.o: ${SRC}/%.c ${BB_HEADER}
 	${EVA_CC} -o $@ -c $<
 
-DEP_FLAGS += RELEASE=1 -B
+DEP_FLAGS += -B
+
+ifdef RELEASE
+DEP_FLAGS += RELEASE=1
+endif
 
 ifdef BLIS
 DEP_FLAGS += BLIS=1
