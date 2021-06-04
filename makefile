@@ -22,7 +22,7 @@ LDFLAGS         += ${MLVM_LIB} ${EVA_LIB}
 # ------------------------------------------------------------------------------
 BB_HEADER       = ${SRC}/bb.h
 BB_LIB          = ${BUILD}/bb_bb.o ${BUILD}/bb_prog.o ${BUILD}/bb_module.o \
-		  ${BUILD}/bb_layers.o ${BUILD}/bb_opt.o
+		  ${BUILD}/bb_layers.o ${BUILD}/bb_opt.o ${BUILD}/opt_fn.o
 
 ALL_LIBS        = ${BB_LIB}
 
@@ -36,6 +36,9 @@ ALL_LIBS        = ${BB_LIB}
 compile: ${BUILD} ${ALL_LIBS}
 
 ${BUILD}/bb_%.o: ${SRC}/%.c ${BB_HEADER}
+	${EVA_CC} -o $@ -c $<
+
+${BUILD}/opt_%.o: ${SRC}/opt/%.c ${BB_HEADER}
 	${EVA_CC} -o $@ -c $<
 
 DEP_FLAGS += -B
