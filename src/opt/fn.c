@@ -1,6 +1,67 @@
 #include "opt/fn.h"
 
 // -----------------------------------------------------------------------------
+// General map.
+// -----------------------------------------------------------------------------
+
+struct dict_entry_t {
+    void *key;
+    union {
+        void *val;
+        uint64_t u64;
+        int64_t s64;
+        double d;
+    } v;
+    struct dict_entry_t *next;
+} ;
+
+struct dict_ty_t {
+    uint64_t (*hashFn)(const void *key);
+    void *(*keyDup)(void *privdata, const void *key);
+    void *(*valDup)(void *privdata, const void *obj);
+    int (*keyCmp)(void *privdata, const void *key1, const void *key2);
+    void (*keyFree)(void *privdata, void *key);
+    void (*valFree)(void *privdata, void *obj);
+} ;
+
+struct dict_table_t {
+    struct dict_entry_t **table;
+    unsigned long size;
+    unsigned long sizemask;
+} ;
+
+struct dict_t {
+    struct dict_ty_t *type;
+    void *privdata;
+    struct dict_table_t ht;
+} ;
+
+static void _dictReset(struct dict_table_t *ht)
+{
+    ht->table = NULL;
+    ht->size = 0;
+    ht->sizemask = 0;
+}
+
+/* Initialize the hash table */
+int _dictInit(struct dict_t *d, struct dict_ty_t *type, void *privDataPtr)
+{
+    _dictReset(&d->ht);
+    d->type = type;
+    d->privdata = privDataPtr;
+    return OK;
+}
+
+/* Create a new hash table */
+struct dict_t *dictNew(struct dict_ty_t *type, void *privDataPtr)
+{
+    struct dict_t *d = malloc(sizeof(*d));
+    _dictInit(d,type,privDataPtr);
+    return d;
+}
+
+
+// -----------------------------------------------------------------------------
 // Map Helpers.
 // -----------------------------------------------------------------------------
 
