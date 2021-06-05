@@ -105,6 +105,139 @@ dictExpand(struct dict_t *d, unsigned long size)
         return _dictExpand(d, size);
 }
 
+#define dictSetKey(d, entry, _key_)                                  \
+        do {                                                         \
+                if ((d)->type->keyDup)                               \
+                        (entry)->key =                               \
+                            (d)->type->keyDup((d)->privdata, _key_); \
+                else                                                 \
+                        (entry)->key = (_key_);                      \
+        } while (0)
+
+#define dictSetVal(d, entry, _val_)                                  \
+        do {                                                         \
+                if ((d)->type->valDup)                               \
+                        (entry)->v.val =                             \
+                            (d)->type->valDup((d)->privdata, _val_); \
+                else                                                 \
+                        (entry)->v.val = (_val_);                    \
+        } while (0)
+
+/* Expand the hash table if needed */
+static error_t
+_dictExpandIfNeeded(struct dict_t *d)
+{
+        /* If the hash table is empty expand it to the initial size. */
+        if (d->ht.size == 0) return dictExpand(d, DICT_HT_INITIAL_SIZE);
+
+        // TODO
+        //
+        // /* If we reached the 1:1 ratio, and we are allowed to resize the hash
+        //  * table (global setting) or we should avoid it but the ratio between
+        //  * elements/buckets is over the "safe" threshold, we resize doubling
+        //  * the number of buckets. */
+        // if (d->ht[0].used >= d->ht[0].size &&
+        //     (dict_can_resize ||
+        //      d->ht[0].used/d->ht[0].size > dict_force_resize_ratio) &&
+        //     dictTypeExpandAllowed(d))
+        // {
+        //     return dictExpand(d, d->ht[0].used + 1);
+        // }
+        return OK;
+}
+
+#define dictCompareKeys(d, key1, key2)                                      \
+        (((d)->type->keyCmp) ? (d)->type->keyCmp((d)->privdata, key1, key2) \
+                             : (key1) == (key2))
+
+#define dictHashKey(d, key) (d)->type->hashFn(key)
+
+/* Returns the index of a free slot that can be populated with
+ * a hash entry for the given 'key'.
+ * If the key already exists, -1 is returned
+ * and the optional output parameter may be filled.
+ */
+static long
+_dictKeyIndex(struct dict_t *d, const void *key, uint64_t hash,
+              struct dict_entry_t **existing)
+{
+        unsigned long        idx;
+        struct dict_entry_t *he;
+        if (existing) *existing = NULL;
+
+        /* Expand the hash table if needed */
+        if (_dictExpandIfNeeded(d))
+                return errEmitNote("failed to expand the table.");
+
+        idx = hash & d->ht.sizemask;
+        /* Search if this slot does not already contain the given key */
+        he = d->ht.table[idx];
+        while (he != NULL) {
+                if (key == he->key || dictCompareKeys(d, key, he->key)) {
+                        if (existing) *existing = he;
+                        return -1;
+                }
+                he = he->next;
+        }
+        return idx;
+}
+
+/*
+ * Low level add or find:
+ *
+ * This function adds the entry but instead of setting a value returns the
+ * dictEntry structure to the user, that will make sure to fill the value
+ * field as he wishes.
+ *
+ * This function is also directly exposed to the user API to be called
+ * mainly in order to store non-pointers inside the hash value, example:
+ *
+ * entry = dictAddRaw(dict,mykey,NULL);
+ * if (entry != NULL) dictSetSignedIntegerVal(entry,1000);
+ *
+ * Return values:
+ *
+ * If key already exists NULL is returned, and "*existing" is populated
+ * with the existing entry if existing is not NULL.
+ *
+ * If key was added, the hash entry is returned to be manipulated by the caller.
+ */
+struct dict_entry_t *
+dictAddRaw(struct dict_t *d, void *key, struct dict_entry_t **existing)
+{
+        long                 index;
+        struct dict_entry_t *entry;
+        struct dict_table_t *ht = &d->ht;
+
+        /* Get the index of the new element, or -1 if the element already
+         * exists. */
+        if ((index = _dictKeyIndex(d, key, dictHashKey(d, key), existing)) ==
+            -1)
+                return NULL;
+
+        /* Allocate the memory and store the new entry.
+         * Insert the element in top, with the assumption that in a database
+         * system it is more likely that recently added entries are accessed
+         * more frequently. */
+        entry            = malloc(sizeof(*entry));
+        entry->next      = ht->table[index];
+        ht->table[index] = entry;
+
+        /* Set the hash entry fields. */
+        dictSetKey(d, entry, key);
+        return entry;
+}
+
+error_t
+dictAdd(struct dict_t *d, void *key, void *val)
+{
+        struct dict_entry_t *entry = dictAddRaw(d, key, NULL);
+
+        if (!entry) return errNew("entry already existed.");
+        dictSetVal(d, entry, val);
+        return OK;
+}
+
 // -----------------------------------------------------------------------------
 // Map Helpers.
 // -----------------------------------------------------------------------------
