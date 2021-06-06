@@ -238,6 +238,110 @@ dictAdd(struct dict_t *d, void *key, void *val)
         return OK;
 }
 
+#define dictFreeKey(d, entry) \
+        if ((d)->type->keyFree) (d)->type->keyFree((d)->privdata, (entry)->key)
+
+#define dictFreeVal(d, entry)   \
+        if ((d)->type->valFree) \
+        (d)->type->valFree((d)->privdata, (entry)->v.val)
+
+/*
+ * Add or Overwrite:
+ *
+ * Add an element, discarding the old value if the key already exists.
+ * Return 1 if the key was added from scratch, 0 if there was already an
+ * element with such key and dictReplace() just performed a value update
+ * operation. */
+int
+dictReplace(struct dict_t *d, void *key, void *val)
+{
+        struct dict_entry_t *entry, *existing, auxentry;
+
+        /* Try to add the element. If the key
+         * does not exists dictAdd will succeed. */
+        entry = dictAddRaw(d, key, &existing);
+        if (entry) {
+                dictSetVal(d, entry, val);
+                return 1;
+        }
+
+        /* Set the new value and free the old one. Note that it is important
+         * to do that in this order, as the value may just be exactly the same
+         * as the previous one. In this context, think to reference counting,
+         * you want to increment (set), and then decrement (free), and not the
+         * reverse. */
+        auxentry = *existing;
+        dictSetVal(d, existing, val);
+        dictFreeVal(d, &auxentry);
+        return 0;
+}
+
+/* Add or Find:
+ * dictAddOrFind() is simply a version of dictAddRaw() that always
+ * returns the hash entry of the specified key, even if the key already
+ * exists and can't be added (in that case the entry of the already
+ * existing key is returned.)
+ *
+ * See dictAddRaw() for more information. */
+struct dict_entry_t *
+dictAddOrFind(struct dict_t *d, void *key)
+{
+        struct dict_entry_t *entry, *existing;
+        entry = dictAddRaw(d, key, &existing);
+        return entry ? entry : existing;
+}
+
+/* Destroy an entire dictionary */
+error_t
+_dictClear(struct dict_t *d, struct dict_table_t *ht)
+{
+        unsigned long i;
+
+        /* Free all the elements */
+        for (i = 0; i<ht->size> 0; i++) {
+                struct dict_entry_t *he, *nextHe;
+
+                if ((he = ht->table[i]) == NULL) continue;
+
+                while (he) {
+                        nextHe = he->next;
+                        dictFreeKey(d, he);
+                        dictFreeVal(d, he);
+                        free(he);
+                        he = nextHe;
+                }
+        }
+        free(ht->table);
+        _dictReset(ht);
+        return OK; /* never fails */
+}
+
+/* Clear & Release the hash table */
+void
+dictFree(struct dict_t *d)
+{
+        if (d == NULL) return;
+        _dictClear(d, &d->ht);
+        free(d);
+}
+
+struct dict_entry_t *
+dictFind(struct dict_t *d, const void *key)
+{
+        struct dict_entry_t *he;
+        uint64_t             h, idx;
+
+        h   = dictHashKey(d, key);
+        idx = h & d->ht.sizemask;
+        he  = d->ht.table[idx];
+        while (he) {
+                if (key == he->key || dictCompareKeys(d, key, he->key))
+                        return he;
+                he = he->next;
+        }
+        return NULL;
+}
+
 // -----------------------------------------------------------------------------
 // Map Helpers.
 // -----------------------------------------------------------------------------
