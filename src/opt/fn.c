@@ -8,6 +8,27 @@
 
 #define DICT_HT_INITIAL_SIZE 128
 
+#define dictGetKey(he)     ((he)->key)
+#define dictGetVal(he)     ((he)->v.val)
+#define dictGetSIntVal(he) ((he)->v.s64)
+#define dictGetUIntVal(he) ((he)->v.u64)
+#define dictGetDVal(he)    ((he)->v.d)
+
+#define dictSetSIntVal(entry, _val_)    \
+        do {                            \
+                (entry)->v.s64 = _val_; \
+        } while (0)
+
+#define dictSetUIntVal(entry, _val_)    \
+        do {                            \
+                (entry)->v.u64 = _val_; \
+        } while (0)
+
+#define dictSetDVal(entry, _val_)     \
+        do {                          \
+                (entry)->v.d = _val_; \
+        } while (0)
+
 struct dict_entry_t {
         void *key;
         union {
