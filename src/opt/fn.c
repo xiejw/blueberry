@@ -1,5 +1,6 @@
 #include "opt/fn.h"
 
+#include "vm_internal.h"  //  MAX_TENSOR_COUNT
 
 // -----------------------------------------------------------------------------
 // Map Helpers.
@@ -13,11 +14,12 @@ struct td_map_t {
 };
 
 struct td_map_t *
-bbTdMap(int cap)
+bbTdMap()
 {
-        struct td_map_t *p = malloc(sizeof(struct td_map_t));
-        p->cap             = cap;
-        p->data            = NULL;
+        int              cap = MLVM_MAX_TENSOR_COUNT;
+        struct td_map_t *p   = malloc(sizeof(struct td_map_t));
+        p->cap               = cap;
+        p->data              = NULL;
         vecReserve(p->data, cap);
         memset(p->data, 0, cap * sizeof(void *));  // NULL all slots.
         return p;
