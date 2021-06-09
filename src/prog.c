@@ -9,9 +9,8 @@
 struct bb_program_t *
 bbProgNew()
 {
-        struct bb_program_t *p = malloc(sizeof(struct bb_program_t));
+        struct bb_program_t *p = calloc(1, sizeof(struct bb_program_t));
         if (p == NULL) return NULL;
-        memset(p, 0, sizeof(struct bb_program_t));
         return p;
 }
 
@@ -20,7 +19,7 @@ bbProgFree(struct bb_program_t *p)
 {
         if (p == NULL) return;
         struct bb_inst_t *next, *curr;
-        curr = p->head;
+        curr = p->inst_list.head;
         while (curr != NULL) {
                 next = curr->next;
                 free(curr);
@@ -38,30 +37,37 @@ bbProgFree(struct bb_program_t *p)
 void
 bbProgAppend(struct bb_program_t *p, struct oparg_t *op)
 {
+        bbInstListAppend(&p->inst_list, op);
+}
+
+void
+bbInstListAppend(struct bb_inst_list_t *list, struct oparg_t *op)
+{
         struct bb_inst_t *inst = malloc(sizeof(struct bb_inst_t));
         inst->op               = *op;
         inst->next             = NULL;
 
-        struct bb_inst_t *tail = p->tail;
+        struct bb_inst_t *tail = list->tail;
 
-        if (p->head == NULL) {
+        if (list->head == NULL) {
                 inst->prev = NULL;
-                p->head    = inst;
-                p->tail    = inst;
+                list->head = inst;
+                list->tail = inst;
         } else {
                 inst->prev = tail;
                 tail->next = inst;
-                p->tail    = inst;
+                list->tail = inst;
         }
 
-        p->count++;
+        list->count++;
 }
 
 error_t
 bbProgCompileToBatchOps(struct bb_program_t *p, int *out_count,
                         struct oparg_t **out)
 {
-        size_t count = p->count;
+        struct bb_inst_list_t *list  = &p->inst_list;
+        size_t                 count = list->count;
         if (count == 0) {
                 *out_count = 0;
                 *out       = NULL;
@@ -70,7 +76,7 @@ bbProgCompileToBatchOps(struct bb_program_t *p, int *out_count,
 
         struct oparg_t *ops = malloc(count * sizeof(struct oparg_t));
 
-        struct bb_inst_t *curr = p->head;
+        struct bb_inst_t *curr = list->head;
         for (size_t i = 0; i < count; i++) {
                 assert(curr != NULL);
                 *(ops + i) = curr->op;
@@ -131,71 +137,75 @@ bbProgDump(struct bb_program_t *p, sds_t *s)
 
 #undef PRINT_COLLECTION
 
-        {
-                sdsCatPrintf(s, "{  // ops\n");
-                if (p->head == NULL) {
-                        sdsCatPrintf(s, "  (empty)\n");
-                        return;
-                }
+        bbInstListDump(&p->inst_list, s);
+}
 
-                struct bb_inst_t *curr;
-                curr = p->head;
-                while (curr != NULL) {
-                        char *opname;
-                        switch (curr->op.op) {
-                        case OP_MATMUL:
-                                opname = "OP_MATMUL";
-                                break;
-                        case OP_CMPL:
-                                opname = "OP_CMPL";
-                                break;
-                        case OP_MUL:
-                                opname = "OP_MUL";
-                                break;
-                        case OP_DIVIDE:
-                                opname = "OP_DIVIDE";
-                                break;
-                        case OP_ISQRT:
-                                opname = "OP_ISQRT";
-                                break;
-                        case OP_MINUS:
-                                opname = "OP_MINUS";
-                                break;
-                        case OP_ADD:
-                                opname = "OP_ADD";
-                                break;
-                        case OP_MAX:
-                                opname = "OP_MAX";
-                                break;
-                        case OP_REDUCE:
-                                opname = "OP_REDUCE";
-                                break;
-                        case OP_ARGMAX:
-                                opname = "OP_ARGMAX";
-                                break;
-                        case OP_EQ:
-                                opname = "OP_EQ";
-                                break;
-                        case OP_LS_SCEL:
-                                opname = "OP_LS_SCEL";
-                                break;
-                        default:
-                                opname = "UNKNOWN";
-                        }
-                        struct oparg_t *op = &curr->op;
-                        sdsCatPrintf(s,
-                                     "  {.op = %2d (%-10s), .dst = %3d, .t1 = "
-                                     "%3d, .t2 = %3d",
-                                     op->op, opname, op->dst, op->t1, op->t2);
-                        if (!op->has_opt) {
-                                sdsCatPrintf(s, "}\n");
-                        } else {
-                                sdsCatPrintf(s, ", ");
-                                bbOpDump(s, &op->opt);
-                                sdsCatPrintf(s, "}\n");
-                        }
-                        curr = curr->next;
-                }
-                sdsCatPrintf(s, "}\n");
+void
+bbInstListDump(struct bb_inst_list_t *list, sds_t *s)
+{
+        sdsCatPrintf(s, "{  // ops\n");
+        if (list->head == NULL) {
+                sdsCatPrintf(s, "  (empty)\n");
+                return;
         }
+
+        struct bb_inst_t *curr;
+        curr = list->head;
+        while (curr != NULL) {
+                char *opname;
+                switch (curr->op.op) {
+                case OP_MATMUL:
+                        opname = "OP_MATMUL";
+                        break;
+                case OP_CMPL:
+                        opname = "OP_CMPL";
+                        break;
+                case OP_MUL:
+                        opname = "OP_MUL";
+                        break;
+                case OP_DIVIDE:
+                        opname = "OP_DIVIDE";
+                        break;
+                case OP_ISQRT:
+                        opname = "OP_ISQRT";
+                        break;
+                case OP_MINUS:
+                        opname = "OP_MINUS";
+                        break;
+                case OP_ADD:
+                        opname = "OP_ADD";
+                        break;
+                case OP_MAX:
+                        opname = "OP_MAX";
+                        break;
+                case OP_REDUCE:
+                        opname = "OP_REDUCE";
+                        break;
+                case OP_ARGMAX:
+                        opname = "OP_ARGMAX";
+                        break;
+                case OP_EQ:
+                        opname = "OP_EQ";
+                        break;
+                case OP_LS_SCEL:
+                        opname = "OP_LS_SCEL";
+                        break;
+                default:
+                        opname = "UNKNOWN";
+                }
+                struct oparg_t *op = &curr->op;
+                sdsCatPrintf(s,
+                             "  {.op = %2d (%-10s), .dst = %3d, .t1 = "
+                             "%3d, .t2 = %3d",
+                             op->op, opname, op->dst, op->t1, op->t2);
+                if (!op->has_opt) {
+                        sdsCatPrintf(s, "}\n");
+                } else {
+                        sdsCatPrintf(s, ", ");
+                        bbOpDump(s, &op->opt);
+                        sdsCatPrintf(s, "}\n");
+                }
+                curr = curr->next;
+        }
+        sdsCatPrintf(s, "}\n");
 }

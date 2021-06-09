@@ -22,6 +22,15 @@ struct bb_inst_t {
         struct bb_inst_t *prev;
 };
 
+struct bb_inst_list_t {
+        int               count;
+        struct bb_inst_t *head;
+        struct bb_inst_t *tail;
+};
+
+void bbInstListAppend(struct bb_inst_list_t *list, struct oparg_t *op);
+void bbInstListDump(struct bb_inst_list_t *list, sds_t *s);
+
 struct bb_program_t {
         vec_t(int) inputs;   // ele unowned.
         vec_t(int) labels;   // ele unowned.
@@ -29,9 +38,7 @@ struct bb_program_t {
         vec_t(int) weights;  // ele unowned.
         vec_t(int) grads;    // ele unowned.
         vec_t(int) states;   // ele unowned.
-        int               count;
-        struct bb_inst_t *head;
-        struct bb_inst_t *tail;
+        struct bb_inst_list_t inst_list;
 };
 
 struct bb_program_t *bbProgNew();
