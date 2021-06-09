@@ -28,6 +28,8 @@ struct bb_inst_list_t {
         struct bb_inst_t *tail;
 };
 
+void bbInstListReset(struct bb_inst_list_t *list);
+void bbInstListFree(struct bb_inst_list_t *list);
 void bbInstListAppend(struct bb_inst_list_t *list, struct oparg_t *op);
 void bbInstListDump(struct bb_inst_list_t *list, sds_t *s);
 

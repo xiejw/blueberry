@@ -11,20 +11,20 @@ bbProgNew()
 {
         struct bb_program_t *p = calloc(1, sizeof(struct bb_program_t));
         if (p == NULL) return NULL;
+        bbInstListReset(&p->inst_list);
         return p;
+}
+void
+bbInstListReset(struct bb_inst_list_t *list)
+{
+        memset(list, 0, sizeof(*list));
 }
 
 void
 bbProgFree(struct bb_program_t *p)
 {
         if (p == NULL) return;
-        struct bb_inst_t *next, *curr;
-        curr = p->inst_list.head;
-        while (curr != NULL) {
-                next = curr->next;
-                free(curr);
-                curr = next;
-        }
+        bbInstListFree(&p->inst_list);
         vecFree(p->inputs);
         vecFree(p->labels);
         vecFree(p->outputs);
@@ -32,6 +32,18 @@ bbProgFree(struct bb_program_t *p)
         vecFree(p->grads);
         vecFree(p->states);
         free(p);
+}
+
+void
+bbInstListFree(struct bb_inst_list_t *list)
+{
+        struct bb_inst_t *next, *curr;
+        curr = list->head;
+        while (curr != NULL) {
+                next = curr->next;
+                free(curr);
+                curr = next;
+        }
 }
 
 void

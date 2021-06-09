@@ -5,11 +5,12 @@
 
 #include "adt/vec.h"
 
+#include "bb.h"
+
 struct bb_fn_t {
         vec_t(int) inputs;
         vec_t(int) outputs;
-        struct bb_inst_t* head;
-        struct bb_inst_t* tail;
+        struct bb_inst_list_t inst_list;
 };
 
 struct bb_fn_t* bbFnNew();

@@ -66,6 +66,7 @@ bbFnNew()
 {
         size_t          psize = sizeof(struct bb_fn_t);
         struct bb_fn_t *p     = calloc(1, psize);
+        bbInstListReset(&p->inst_list);
         return p;
 }
 
@@ -73,6 +74,9 @@ void
 bbFnFree(struct bb_fn_t *p)
 {
         if (p == NULL) return;
+        vecFree(p->inputs);
+        vecFree(p->outputs);
+        bbInstListFree(&p->inst_list);
         free(p);
 }
 
