@@ -31,6 +31,7 @@ struct bb_inst_list_t {
 void bbInstListReset(struct bb_inst_list_t *list);
 void bbInstListFree(struct bb_inst_list_t *list);
 void bbInstListAppend(struct bb_inst_list_t *list, struct oparg_t *op);
+void bbInstListDelete(struct bb_inst_list_t *list, struct bb_inst_t *);
 void bbInstListDump(struct bb_inst_list_t *list, sds_t *s);
 
 struct bb_program_t {

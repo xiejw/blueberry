@@ -206,12 +206,21 @@ runDCEPass(struct bb_fn_t *fn, void *cfg, int *changed)
         int i = 0;
         while (curr != NULL) {
                 struct dict_entry_t *en = dictFind(t, &curr->op);
-                if (en == NULL) {
-                        printf("inst %d not marked.\n", i);
-                } else {
-                        printf("inst %d marked.\n", i);
-                }
+                // TODO (debug?)
+                // if (en == NULL) {
+                //         printf("inst %d not marked.\n", i);
+                // } else {
+                //         printf("inst %d marked.\n", i);
+                // }
                 i++;
+                if (en == NULL) {
+                        struct bb_inst_t *next = curr->next;
+
+                        bbInstListDelete(&fn->inst_list, curr);
+
+                        curr = next;
+                        continue;
+                }
                 curr = curr->next;
         }
 

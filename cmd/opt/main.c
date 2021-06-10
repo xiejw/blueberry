@@ -28,6 +28,10 @@ main()
                 errFatalAndExit1("something wrong.");
         }
 
+        sdsClear(s);
+        bbFnDump(fn, &s);
+        printf("%s", s);
+
         bbFnFree(fn);
         sdsFree(s);
         return 0;

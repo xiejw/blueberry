@@ -74,6 +74,29 @@ bbInstListAppend(struct bb_inst_list_t *list, struct oparg_t *op)
         list->count++;
 }
 
+void
+bbInstListDelete(struct bb_inst_list_t *list, struct bb_inst_t *inst)
+{
+        assert(list->head != NULL);
+
+        if (list->head == list->tail) {
+                // single inst case.
+                assert(list->head == inst);
+                list->head = NULL;
+                list->tail = NULL;
+        } else if (list->tail == inst) {
+                // tail case.
+                assert(inst->next == NULL);
+                inst->prev->next = NULL;
+                list->tail       = inst->prev;
+        } else {
+                // general case.
+                inst->prev->next = inst->next;
+                inst->next->prev = inst->prev;
+        }
+        free(inst);
+}
+
 error_t
 bbProgCompileToBatchOps(struct bb_program_t *p, int *out_count,
                         struct oparg_t **out)
