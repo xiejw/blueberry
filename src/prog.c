@@ -158,6 +158,7 @@ bbInstListDump(struct bb_inst_list_t *list, sds_t *s)
         sdsCatPrintf(s, "{  // ops\n");
         if (list->head == NULL) {
                 sdsCatPrintf(s, "  (empty)\n");
+                sdsCatPrintf(s, "}\n");
                 return;
         }
 

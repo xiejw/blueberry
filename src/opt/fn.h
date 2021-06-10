@@ -14,7 +14,9 @@ struct bb_fn_t {
 };
 
 struct bb_fn_t* bbFnNew();
-void            bbFnFree();
+void            bbFnFree(struct bb_fn_t*);
+void            bbFnAppend(struct bb_fn_t*, struct oparg_t* op);
+void            bbFnDump(struct bb_fn_t*, sds_t* s);
 
 error_t runDCEPass(struct bb_fn_t* fn, void* cfg, int* changed);
 
