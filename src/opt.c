@@ -11,7 +11,7 @@ static error_t _bbOptSGDApply(struct bb_opt_t *opt, struct bb_program_t *p);
 static error_t _bbOptRMSPropInit(struct bb_opt_t *opt);
 static error_t _bbOptRMSPropApply(struct bb_opt_t *opt, struct bb_program_t *p);
 static error_t _bbOptAdamPropInit(struct bb_opt_t *opt);
-static error_t _bbOptAdamPropApply(struct bb_opt_t *    opt,
+static error_t _bbOptAdamPropApply(struct bb_opt_t     *opt,
                                    struct bb_program_t *p);
 
 // -----------------------------------------------------------------------------
@@ -190,7 +190,7 @@ _bbOptRMSPropInit(struct bb_opt_t *opt)
         vecSetSize(opt->ivs, weights_count);
 
         error_t         err;
-        struct vm_t *   vm = opt->vm;
+        struct vm_t    *vm = opt->vm;
         struct shape_t *sp;
         for (size_t i = 0; i < weights_count; i++) {
                 err = vmTensorInfo(vm, opt->weights[i], /*dtype=*/NULL, &sp);
@@ -306,7 +306,7 @@ _bbOptAdamPropInit(struct bb_opt_t *opt)
         data->s2_i = 2 * weights_count + 1;
 
         error_t         err;
-        struct vm_t *   vm = opt->vm;
+        struct vm_t    *vm = opt->vm;
         struct shape_t *sp;
         size_t          offset = weights_count;
         for (size_t i = 0; i < weights_count; i++) {

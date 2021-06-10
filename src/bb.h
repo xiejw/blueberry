@@ -108,7 +108,7 @@ struct bb_layer_t {
         vec_t(int) states;   // grads for weights in order.
         vec_t(int) ivs;      // intermediate values.
 
-        struct vm_t *                vm;  // unowned.
+        struct vm_t                 *vm;  // unowned.
         struct bb_layer_operations_t ops;
 };
 
@@ -160,9 +160,9 @@ struct bb_seq_module_t {
         int y;
         vec_t(struct bb_layer_t *) layers;  // owned.
         struct bb_layer_t *loss;            // owned.
-        struct bb_opt_t *  opt;             // owned.
+        struct bb_opt_t   *opt;             // owned.
         struct bb_layer_t *metric;          // owned.
-        struct srng64_t *  r;               // owned.
+        struct srng64_t   *r;               // owned.
 };
 
 struct bb_seq_module_t *bbSeqModuleNew();
@@ -186,7 +186,7 @@ struct bb_layer_config_t {
         void *config;  // unowned
 };
 
-error_t bbCreateLayers(struct vm_t *                   vm,
+error_t bbCreateLayers(struct vm_t                    *vm,
                        const struct bb_layer_config_t *layer_configs,
                        _out_ vec_t(struct bb_layer_t *) * layers);
 

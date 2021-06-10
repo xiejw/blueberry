@@ -91,7 +91,7 @@ _bbDenseInit(struct bb_layer_t *self, const struct bb_context_t *ctx,
              struct srng64_t *rng)
 {
         struct bb_dense_layer_t *this       = (struct bb_dense_layer_t *)self;
-        struct vm_t *                   vm  = self->vm;
+        struct vm_t                    *vm  = self->vm;
         const struct bb_dense_config_t *cfg = &this->config;
         int has_bias                        = cfg->bias_init != BB_INIT_NULL;
         int is_training                     = ctx->is_training;
@@ -131,7 +131,7 @@ _bbDenseJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
 {
         error_t err;
         struct bb_dense_layer_t *this       = (struct bb_dense_layer_t *)self;
-        struct vm_t *                   vm  = self->vm;
+        struct vm_t                    *vm  = self->vm;
         const struct bb_dense_config_t *cfg = &this->config;
         int has_bias                        = cfg->bias_init != BB_INIT_NULL;
         int has_relu                        = cfg->actn == BB_ACTN_RELU;
@@ -319,7 +319,7 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
 {
         error_t err;
         struct bb_scel_layer_t *this       = (struct bb_scel_layer_t *)self;
-        struct vm_t *                  vm  = self->vm;
+        struct vm_t                   *vm  = self->vm;
         const struct bb_scel_config_t *cfg = &this->config;
         int                            is_training = ctx->is_training;
         int reduce_mean = cfg->reduction == BB_REDUCTION_MEAN;

@@ -42,9 +42,9 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
         int y                             = m->y;
         vec_t(struct bb_layer_t *) layers = m->layers;
         struct bb_layer_t *loss           = m->loss;
-        struct bb_opt_t *  opt            = m->opt;
+        struct bb_opt_t   *opt            = m->opt;
         struct bb_layer_t *metric         = m->metric;
-        struct srng64_t *  r              = m->r;
+        struct srng64_t   *r              = m->r;
 
         assert(x != 0 && y != 0);
         assert(layers != NULL);

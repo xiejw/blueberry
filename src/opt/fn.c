@@ -48,28 +48,17 @@ bbTdMapFind(struct td_map_t *map, int td, void **data)
         return OK;
 }
 
-#define BB_TD_MAP_OVERWRITE        0
-#define BB_TD_MAP_DO_NOT_OVERWRITE 1
-
 error_t
-bbTdMapSet(struct td_map_t *map, int td, void *v, int policy, int *existed)
+bbTdMapSet(struct td_map_t *map, int td, void *v)
 {
         if (td < 0) return errNew("td cannot be negative.");
         if (td >= map->cap) return errNew("td is too large.");
 
-        int existed_already = map->data[td] != NULL;
+        void **p = &map->data[td];
 
-        if (existed) *existed = existed_already;
+        if (*p != NULL) return errNew("already have value.");
 
-        if (policy == BB_TD_MAP_OVERWRITE) {
-                map->data[td] = v;
-                return OK;
-        }
-
-        assert(policy == BB_TD_MAP_DO_NOT_OVERWRITE);
-        if (!existed_already) {
-                map->data[td] = v;
-        }
+        *p = v;
         return OK;
 }
 
@@ -159,10 +148,10 @@ error_t
 runDCEPass(struct bb_fn_t *fn, void *cfg, int *changed)
 {
         error_t           err;
-        struct td_map_t * map  = bbTdMapNew();
+        struct td_map_t  *map  = bbTdMapNew();
         struct bb_inst_t *curr = fn->inst_list.head;
         struct bb_inst_t *inst;
-        dict_t *          t = dictNew(&ty, NULL);
+        dict_t           *t = dictNew(&ty, NULL);
 
         // record map from td to inst.
         while (curr != NULL) {
@@ -170,16 +159,15 @@ runDCEPass(struct bb_fn_t *fn, void *cfg, int *changed)
                 if (err) return errEmitNote("failed to look up td.");
                 if (inst != NULL) errNew("do not support in-place update.");
 
-                if (bbTdMapSet(map, curr->op.dst, &curr->op,
-                               BB_TD_MAP_DO_NOT_OVERWRITE, NULL)) {
+                if (bbTdMapSet(map, curr->op.dst, &curr->op)) {
                         errEmitNote("failed to insert td.");
                 }
                 curr = curr->next;
         }
 
+        // push outputs to criticals.
         vec_t(struct bb_inst_t *) criticals = vecNew();
-
-        size_t output_count = vecSize(fn->outputs);
+        size_t output_count                 = vecSize(fn->outputs);
         for (size_t i = 0; i < output_count; i++) {
                 int td = fn->outputs[i];
                 err    = bbTdMapFind(map, td, (void **)&inst);
@@ -188,19 +176,24 @@ runDCEPass(struct bb_fn_t *fn, void *cfg, int *changed)
                 vecPushBack(criticals, inst);
         }
 
+        int existed;
         while (vecSize(criticals) > 0) {
                 struct bb_inst_t *inst_src;
                 inst = vecPopBack(criticals);
                 // mark
-                struct dict_entry_t *en = dictAddOrFind(t, inst);
+                struct dict_entry_t *en = dictAddOrFind(t, inst, &existed);
+                assert(!existed);
                 dictSetUIntVal(en, 1);
 
+                // put the instruction into criticals if not marked yet.
                 err = bbTdMapFind(map, inst->op.t1, (void **)&inst_src);
                 if (err) return errEmitNote("failed to look up td.");
                 if (inst_src != NULL) {
                         en = dictFind(t, inst_src);
                         if (en == NULL) vecPushBack(criticals, inst_src);
                 }
+
+                // put the instruction into criticals if not marked yet.
                 err = bbTdMapFind(map, inst->op.t2, (void **)&inst_src);
                 if (err) return errEmitNote("failed to look up td.");
                 if (inst_src != NULL) {
