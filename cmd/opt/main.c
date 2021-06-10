@@ -9,8 +9,18 @@ main()
         printf("Hello opt.\n");
 
         struct bb_fn_t* fn = bbFnNew();
-        bbFnDump(fn, &s);
 
+        vecPushBack(fn->inputs, 1);
+        vecPushBack(fn->inputs, 2);
+
+        vecPushBack(fn->outputs, 3);
+
+        bbFnAppend(fn,
+                   &(struct oparg_t){.op = OP_ADD, .dst = 3, .t1 = 1, .t2 = 2});
+        bbFnAppend(fn,
+                   &(struct oparg_t){.op = OP_ADD, .dst = 4, .t1 = 1, .t2 = 2});
+
+        bbFnDump(fn, &s);
         printf("%s", s);
 
         bbFnFree(fn);
