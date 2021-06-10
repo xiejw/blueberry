@@ -1,6 +1,12 @@
 #include "opt/fn.h"
 
+// eva
+#include "adt/dict.h"
+
+// mlvm
 #include "vm_internal.h"  //  MAX_TENSOR_COUNT
+
+#include <stdio.h>  // TODO
 
 // -----------------------------------------------------------------------------
 // Map Helpers.
@@ -128,20 +134,42 @@ bbFnDump(struct bb_fn_t *fn, sds_t *s)
 // Passes.
 // -----------------------------------------------------------------------------
 
+uint64_t
+hashFn(const void *key)
+{
+        return (intptr_t)key;
+}
+
+int
+keyCmp(void *privdata, const void *key1, const void *key2)
+{
+        return key1 == key2;
+}
+
+struct dict_ty_t ty = {
+    .hashFn  = hashFn,
+    .keyDup  = NULL,
+    .valDup  = NULL,
+    .keyCmp  = keyCmp,
+    .keyFree = NULL,
+    .valFree = NULL,
+};
+
 error_t
 runDCEPass(struct bb_fn_t *fn, void *cfg, int *changed)
 {
         error_t           err;
         struct td_map_t * map  = bbTdMapNew();
         struct bb_inst_t *curr = fn->inst_list.head;
-        struct bb_inst_t *data;
+        struct bb_inst_t *inst;
+        dict_t *          t = dictNew(&ty, NULL);
 
+        // record map from td to inst.
         while (curr != NULL) {
-                err = bbTdMapFind(map, curr->op.dst, (void **)&data);
+                err = bbTdMapFind(map, curr->op.dst, (void **)&inst);
                 if (err) return errEmitNote("failed to look up td.");
-                if (data != NULL) {
-                        errNew("do not support in-place update.");
-                }
+                if (inst != NULL) errNew("do not support in-place update.");
+
                 if (bbTdMapSet(map, curr->op.dst, &curr->op,
                                BB_TD_MAP_DO_NOT_OVERWRITE, NULL)) {
                         errEmitNote("failed to insert td.");
@@ -149,6 +177,53 @@ runDCEPass(struct bb_fn_t *fn, void *cfg, int *changed)
                 curr = curr->next;
         }
 
+        vec_t(struct bb_inst_t *) criticals = vecNew();
+
+        size_t output_count = vecSize(fn->outputs);
+        for (size_t i = 0; i < output_count; i++) {
+                int td = fn->outputs[i];
+                err    = bbTdMapFind(map, td, (void **)&inst);
+                if (err) return errEmitNote("failed to look up td.");
+                if (inst == NULL) errNew("expect op generating output.");
+                vecPushBack(criticals, inst);
+        }
+
+        while (vecSize(criticals) > 0) {
+                struct bb_inst_t *inst_src;
+                inst = vecPopBack(criticals);
+                // mark
+                struct dict_entry_t *en = dictAddOrFind(t, inst);
+                dictSetUIntVal(en, 1);
+
+                err = bbTdMapFind(map, inst->op.t1, (void **)&inst_src);
+                if (err) return errEmitNote("failed to look up td.");
+                if (inst_src != NULL) {
+                        en = dictFind(t, inst_src);
+                        if (en == NULL) vecPushBack(criticals, inst_src);
+                }
+                err = bbTdMapFind(map, inst->op.t2, (void **)&inst_src);
+                if (err) return errEmitNote("failed to look up td.");
+                if (inst_src != NULL) {
+                        en = dictFind(t, inst_src);
+                        if (en == NULL) vecPushBack(criticals, inst_src);
+                }
+        }
+
+        curr  = fn->inst_list.head;
+        int i = 0;
+        while (curr != NULL) {
+                struct dict_entry_t *en = dictFind(t, &curr->op);
+                if (en == NULL) {
+                        printf("inst %d not marked.\n", i);
+                } else {
+                        printf("inst %d marked.\n", i);
+                }
+                i++;
+                curr = curr->next;
+        }
+
+        dictFree(t);
+        vecFree(criticals);
         bbTdMapFree(map);
         *changed = 0;
         return OK;
