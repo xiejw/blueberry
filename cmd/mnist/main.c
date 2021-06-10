@@ -34,6 +34,8 @@ static unsigned char* images   = NULL;
 static unsigned char* labels   = NULL;
 static size_t         it_count = 0;
 
+#define PRETEND 1
+
 // -----------------------------------------------------------------------------
 // Main.
 // -----------------------------------------------------------------------------
@@ -136,19 +138,22 @@ main()
         // ---------------------------------------------------------------------
         // Run.
         // ---------------------------------------------------------------------
-        for (int ep = 0; ep < 12; ep++) {
-                // for (int ep = 0; ep < 1; ep++) {
-                for (int i = 0; i < TOTOL_IMAGES / BATCH_SIZE; i++) {
-                        NE(prepareData(x_data,
-                                       /*x_size=*/sp_x->size, y_data,
-                                       /*y_size=*/sp_y->size));
-                        NE(vmBatch(vm, prog_count, prog));
+        if (!PRETEND) {
+                for (int ep = 0; ep < 12; ep++) {
+                        // for (int ep = 0; ep < 1; ep++) {
+                        for (int i = 0; i < TOTOL_IMAGES / BATCH_SIZE; i++) {
+                                NE(prepareData(x_data,
+                                               /*x_size=*/sp_x->size, y_data,
+                                               /*y_size=*/sp_y->size));
+                                NE(vmBatch(vm, prog_count, prog));
+                        }
+                        float auc;
+                        NE(m->metric->ops.summary(m->metric, &auc,
+                                                  BB_FLAG_RESET));
+                        printf("epoch: %2d (training) auc: %f\n", ep + 1, auc);
+                        fflush(stdout);
+                        it_count = 0;
                 }
-                float auc;
-                NE(m->metric->ops.summary(m->metric, &auc, BB_FLAG_RESET));
-                printf("epoch: %2d (training) auc: %f\n", ep + 1, auc);
-                fflush(stdout);
-                it_count = 0;
         }
 
 cleanup:
