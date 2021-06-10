@@ -23,6 +23,11 @@ main()
         bbFnDump(fn, &s);
         printf("%s", s);
 
+        int changed;
+        if (runDCEPass(fn, NULL, &changed)) {
+                errFatalAndExit1("something wrong.");
+        }
+
         bbFnFree(fn);
         sdsFree(s);
         return 0;

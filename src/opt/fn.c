@@ -14,7 +14,7 @@ struct td_map_t {
 };
 
 struct td_map_t *
-bbTdMap()
+bbTdMapNew()
 {
         int              cap = MLVM_MAX_TENSOR_COUNT;
         struct td_map_t *p   = malloc(sizeof(struct td_map_t));
@@ -23,6 +23,14 @@ bbTdMap()
         vecReserve(p->data, cap);
         memset(p->data, 0, cap * sizeof(void *));  // NULL all slots.
         return p;
+}
+
+void
+bbTdMapFree(struct td_map_t *p)
+{
+        if (p == NULL) return;
+        vecFree(p->data);
+        free(p);
 }
 
 error_t
@@ -43,7 +51,9 @@ bbTdMapSet(struct td_map_t *map, int td, void *v, int policy, int *existed)
         if (td < 0) return errNew("td cannot be negative.");
         if (td >= map->cap) return errNew("td is too large.");
 
-        *existed = map->data[td] != NULL;
+        int existed_already = map->data[td] != NULL;
+
+        if (existed) *existed = existed_already;
 
         if (policy == BB_TD_MAP_OVERWRITE) {
                 map->data[td] = v;
@@ -51,7 +61,7 @@ bbTdMapSet(struct td_map_t *map, int td, void *v, int policy, int *existed)
         }
 
         assert(policy == BB_TD_MAP_DO_NOT_OVERWRITE);
-        if (!*existed) {
+        if (!existed_already) {
                 map->data[td] = v;
         }
         return OK;
@@ -121,6 +131,25 @@ bbFnDump(struct bb_fn_t *fn, sds_t *s)
 error_t
 runDCEPass(struct bb_fn_t *fn, void *cfg, int *changed)
 {
+        error_t           err;
+        struct td_map_t * map  = bbTdMapNew();
+        struct bb_inst_t *curr = fn->inst_list.head;
+        struct bb_inst_t *data;
+
+        while (curr != NULL) {
+                err = bbTdMapFind(map, curr->op.dst, (void **)&data);
+                if (err) return errEmitNote("failed to look up td.");
+                if (data != NULL) {
+                        errNew("do not support in-place update.");
+                }
+                if (bbTdMapSet(map, curr->op.dst, &curr->op,
+                               BB_TD_MAP_DO_NOT_OVERWRITE, NULL)) {
+                        errEmitNote("failed to insert td.");
+                }
+                curr = curr->next;
+        }
+
+        bbTdMapFree(map);
         *changed = 0;
         return OK;
 }
