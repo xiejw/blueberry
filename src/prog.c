@@ -94,6 +94,7 @@ bbInstListDelete(struct bb_inst_list_t *list, struct bb_inst_t *inst)
                 inst->prev->next = inst->next;
                 inst->next->prev = inst->prev;
         }
+        list->count--;
         free(inst);
 }
 

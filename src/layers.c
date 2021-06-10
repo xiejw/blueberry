@@ -382,6 +382,7 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                 if (is_training) {
                         // used for backprop, but need in forward pass.
                         ALLOC_T(d_x, sp_x);
+                        ALLOC_T(d_o, sp_x);
                 }
         } else {
                 if (reduce_mean) {
@@ -408,7 +409,7 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                                    y,
                                    x,
                                    1,
-                                   {.mode = OPT_MODE_I_BIT, .i = this->d_x}});
+                                   {.mode = OPT_MODE_I_BIT, .i = this->d_o}});
                 } else {
                         bbProgAppend(
                             p, &(struct oparg_t){OP_LS_SCEL, this->o, y, x, 0});
@@ -436,8 +437,8 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
         } else {
                 // emit backward
                 //
-                // o = scel(y, x, .i = d_x)
-                // d_x = mul(d_x d_r)
+                // o = scel(y, x, .i = d_o)
+                // d_x = mul(d_o, d_r)
                 int d_r = inputs[0];
                 if (reduce_mean) {
                         bbProgAppend(
@@ -451,7 +452,7 @@ _bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
                         d_r = this->d_r;
                 }
                 bbProgAppend(
-                    p, &(struct oparg_t){OP_MUL, this->d_x, this->d_x, d_r, 0});
+                    p, &(struct oparg_t){OP_MUL, this->d_x, this->d_o, d_r, 0});
                 vecPushBack(*outputs, this->d_x);
                 return OK;
         }

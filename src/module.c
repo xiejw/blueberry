@@ -1,6 +1,8 @@
 #include "bb.h"
 
+#include <stdio.h>
 #include <string.h>
+#include "opt/fn.h"
 
 #define SWAP(x, y) \
         t   = (x); \
@@ -166,6 +168,36 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
                         goto cleanup;
                 }
         }
+
+        struct bb_fn_t *fn = bbFnNew();
+
+        vecExtend(fn->inputs, p->inputs);
+        vecExtend(fn->inputs, p->labels);
+        vecExtend(fn->inputs, p->weights);
+        vecExtend(fn->inputs, p->states);
+
+        vecExtend(fn->outputs, p->weights);
+        vecExtend(fn->outputs, p->grads);
+        vecExtend(fn->outputs, p->states);
+        vecExtend(fn->outputs, p->outputs);
+
+#define SWAP_INST_LIST()                                   \
+        {                                                  \
+                struct bb_inst_list_t tmp = fn->inst_list; \
+                fn->inst_list             = p->inst_list;  \
+                p->inst_list              = tmp;           \
+        }
+
+        SWAP_INST_LIST();
+
+        int debug = 1;
+        int changed;
+        if (runDCEPass(fn, NULL, debug, &changed)) {
+                errFatalAndExit1("something wrong.");
+        }
+
+        SWAP_INST_LIST();
+        bbFnFree(fn);
 
         err = bbOptApply(opt, p);
         if (err) {

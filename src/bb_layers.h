@@ -50,8 +50,8 @@ struct bb_scel_layer_t {
         struct bb_scel_config_t config;
 
         // iv
-        int o, r;      // forward
-        int d_r, d_x;  // backward
+        int o, r;           // forward
+        int d_r, d_o, d_x;  // backward
 
         // other
         int batch_size;  // recorded parameter. used for reduction mean.

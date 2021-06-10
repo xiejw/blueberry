@@ -24,7 +24,8 @@ main()
         printf("%s", s);
 
         int changed;
-        if (runDCEPass(fn, NULL, &changed)) {
+        int debug = 1;
+        if (runDCEPass(fn, NULL, debug, &changed)) {
                 errFatalAndExit1("something wrong.");
         }
 
