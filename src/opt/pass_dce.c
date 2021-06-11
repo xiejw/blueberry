@@ -11,13 +11,13 @@
 // DCE.
 // -----------------------------------------------------------------------------
 
-uint64_t
+static uint64_t
 hashFn(const void* key)
 {
         return (intptr_t)key;
 }
 
-int
+static int
 keyCmp(void* privdata, const void* key1, const void* key2)
 {
         return key1 == key2;

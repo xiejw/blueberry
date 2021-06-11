@@ -23,7 +23,9 @@ LDFLAGS         += ${MLVM_LIB} ${EVA_LIB}
 BB_HEADER       = ${SRC}/bb.h
 BB_LIB          = ${BUILD}/bb_bb.o ${BUILD}/bb_prog.o ${BUILD}/bb_module.o \
 		  ${BUILD}/bb_layers.o ${BUILD}/bb_opt.o \
-		  ${BUILD}/opt_fn.o ${BUILD}/opt_pass_dce.o
+		  ${BUILD}/opt_fn.o ${BUILD}/opt_td_map.o \
+		  ${BUILD}/opt_pass_dce.o \
+		  ${BUILD}/opt_pass_math.o
 
 ALL_LIBS        = ${BB_LIB}
 

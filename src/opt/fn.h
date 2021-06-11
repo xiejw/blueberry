@@ -20,5 +20,7 @@ void            bbFnDump(struct bb_fn_t*, sds_t* s);
 
 // pass_dce.c
 error_t runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed);
+// pass_math.c
+error_t runMathPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed);
 
 #endif
