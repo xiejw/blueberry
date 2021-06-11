@@ -9,17 +9,17 @@
 // Impl for VM.
 // -----------------------------------------------------------------------------
 
-struct vm_t *
+struct vm_t*
 bbVmInit()
 {
-        struct vm_t *vm = vmNew();
+        struct vm_t* vm = vmNew();
         if (vm == NULL) return NULL;
 
         // allocate some common tensors.
         // TD: 0, scalar, zero.
         // TD: 1, scalar, one.
         {
-                struct shape_t *sp = R1S(vm, 1);
+                struct shape_t* sp = R1S(vm, 1);
                 int             td = vmTensorNew(vm, F32, sp);
                 assert(td == 0);
 
@@ -44,25 +44,25 @@ bbVmInit()
 // Impl for Layer.
 // -----------------------------------------------------------------------------
 void
-bbLayerFree(struct bb_layer_t *p)
+bbLayerFree(struct bb_layer_t* p)
 {
         p->ops.release(p);
         free(p);
 }
 
 error_t
-bbCreateLayers(struct vm_t *vm, const struct bb_layer_config_t *layer_configs,
-               vec_t(struct bb_layer_t *) * layers)
+bbCreateLayers(struct vm_t* vm, const struct bb_layer_config_t* layer_configs,
+               vec_t(struct bb_layer_t*) * layers)
 {
         error_t            err;
-        struct bb_layer_t *layer;
+        struct bb_layer_t* layer;
 
-        const struct bb_layer_config_t *curr = layer_configs;
+        const struct bb_layer_config_t* curr = layer_configs;
         while (curr->tag != BB_TAG_NULL) {
                 switch (curr->tag) {
                 case BB_TAG_DENSE:
                         err = bbDenseLayer(
-                            vm, (const struct bb_dense_config_t *)curr->config,
+                            vm, (const struct bb_dense_config_t*)curr->config,
                             &layer);
                         if (err) {
                                 return errEmitNote("failed to create layer.");
@@ -71,7 +71,7 @@ bbCreateLayers(struct vm_t *vm, const struct bb_layer_config_t *layer_configs,
                         break;
                 case BB_TAG_SCEL:
                         err = bbSCELLayer(
-                            vm, (const struct bb_scel_config_t *)curr->config,
+                            vm, (const struct bb_scel_config_t*)curr->config,
                             &layer);
                         if (err) {
                                 return errEmitNote("failed to create layer.");
@@ -91,27 +91,27 @@ bbCreateLayers(struct vm_t *vm, const struct bb_layer_config_t *layer_configs,
 // Impl for Helpers.
 // -----------------------------------------------------------------------------
 error_t
-_bbLayerWeights(struct bb_layer_t *this, vec_t(int) * tds)
+_bbLayerWeights(struct bb_layer_t* this, vec_t(int) * tds)
 {
         return vecExtend(*tds, this->weights);
 }
 
 error_t
-_bbLayerGrads(struct bb_layer_t *this, vec_t(int) * tds)
+_bbLayerGrads(struct bb_layer_t* this, vec_t(int) * tds)
 {
         return vecExtend(*tds, this->grads);
 }
 
 error_t
-_bbLayerStates(struct bb_layer_t *this, vec_t(int) * tds)
+_bbLayerStates(struct bb_layer_t* this, vec_t(int) * tds)
 {
         return vecExtend(*tds, this->states);
 }
 
 error_t
-_bbLayerRelease(struct bb_layer_t *this)
+_bbLayerRelease(struct bb_layer_t* this)
 {
-        struct vm_t *vm = this->vm;
+        struct vm_t* vm = this->vm;
 
 #define RELEAE_TDS(tds)                                          \
         {                                                        \

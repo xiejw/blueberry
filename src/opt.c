@@ -6,22 +6,22 @@
 // Prototype.
 // -----------------------------------------------------------------------------
 
-static error_t _bbOptSGDInit(struct bb_opt_t *opt);
-static error_t _bbOptSGDApply(struct bb_opt_t *opt, struct bb_program_t *p);
-static error_t _bbOptRMSPropInit(struct bb_opt_t *opt);
-static error_t _bbOptRMSPropApply(struct bb_opt_t *opt, struct bb_program_t *p);
-static error_t _bbOptAdamPropInit(struct bb_opt_t *opt);
-static error_t _bbOptAdamPropApply(struct bb_opt_t     *opt,
-                                   struct bb_program_t *p);
+static error_t _bbOptSGDInit(struct bb_opt_t* opt);
+static error_t _bbOptSGDApply(struct bb_opt_t* opt, struct bb_program_t* p);
+static error_t _bbOptRMSPropInit(struct bb_opt_t* opt);
+static error_t _bbOptRMSPropApply(struct bb_opt_t* opt, struct bb_program_t* p);
+static error_t _bbOptAdamPropInit(struct bb_opt_t* opt);
+static error_t _bbOptAdamPropApply(struct bb_opt_t*     opt,
+                                   struct bb_program_t* p);
 
 // -----------------------------------------------------------------------------
 // Public APIs.
 // -----------------------------------------------------------------------------
 error_t
-bbOptNew(struct vm_t *vm, int type, float32_t lr, void *cfg,
-         struct bb_opt_t **out)
+bbOptNew(struct vm_t* vm, int type, float32_t lr, void* cfg,
+         struct bb_opt_t** out)
 {
-        struct bb_opt_t *opt = malloc(sizeof(struct bb_opt_t));
+        struct bb_opt_t* opt = malloc(sizeof(struct bb_opt_t));
         memset(opt, 0, sizeof(struct bb_opt_t));
 
         opt->lr   = lr;
@@ -30,7 +30,7 @@ bbOptNew(struct vm_t *vm, int type, float32_t lr, void *cfg,
 
         size_t cfg_size;
         if (cfg != NULL) {
-                void *ptr;
+                void* ptr;
                 switch (opt->type) {
                 case BB_OPT_SGD:
                         return errNew(
@@ -58,7 +58,7 @@ bbOptNew(struct vm_t *vm, int type, float32_t lr, void *cfg,
 }
 
 error_t
-bbOptInit(struct bb_opt_t *opt, vec_t(int) weights, vec_t(int) grads)
+bbOptInit(struct bb_opt_t* opt, vec_t(int) weights, vec_t(int) grads)
 {
         if (vecSize(weights) != vecSize(grads))
                 return errNew("opt expects len(weights) == len(grads).");
@@ -80,7 +80,7 @@ bbOptInit(struct bb_opt_t *opt, vec_t(int) weights, vec_t(int) grads)
 }
 
 error_t
-bbOptApply(struct bb_opt_t *opt, struct bb_program_t *p)
+bbOptApply(struct bb_opt_t* opt, struct bb_program_t* p)
 {
         switch (opt->type) {
         case BB_OPT_SGD:
@@ -96,10 +96,10 @@ bbOptApply(struct bb_opt_t *opt, struct bb_program_t *p)
 }
 
 void
-bbOptFree(struct bb_opt_t *opt)
+bbOptFree(struct bb_opt_t* opt)
 {
         if (opt == NULL) return;
-        struct vm_t *vm = opt->vm;
+        struct vm_t* vm = opt->vm;
 
         {  // release states.
                 vec_t(int) handles = opt->states;
@@ -133,9 +133,9 @@ struct bb_opt_sgd_t {
 };
 
 static error_t
-_bbOptSGDInit(struct bb_opt_t *opt)
+_bbOptSGDInit(struct bb_opt_t* opt)
 {
-        struct bb_opt_sgd_t *data = malloc(sizeof(struct bb_opt_sgd_t));
+        struct bb_opt_sgd_t* data = malloc(sizeof(struct bb_opt_sgd_t));
 
         // we will reuse the grads. so record the count only here.
         int weights_count   = vecSize(opt->weights);
@@ -146,10 +146,10 @@ _bbOptSGDInit(struct bb_opt_t *opt)
 }
 
 static error_t
-_bbOptSGDApply(struct bb_opt_t *opt, struct bb_program_t *p)
+_bbOptSGDApply(struct bb_opt_t* opt, struct bb_program_t* p)
 {
         size_t weights_count =
-            ((struct bb_opt_sgd_t *)opt->private_data)->weights_count;
+            ((struct bb_opt_sgd_t*)opt->private_data)->weights_count;
         vec_t(int) weights   = opt->weights;
         vec_t(int) grads     = opt->grads;
         struct opopt_t opopt = {.mode = OPT_MODE_F_BIT, .f = opt->lr};
@@ -175,9 +175,9 @@ struct bb_opt_rmsprop_t {
 };
 
 error_t
-_bbOptRMSPropInit(struct bb_opt_t *opt)
+_bbOptRMSPropInit(struct bb_opt_t* opt)
 {
-        struct bb_opt_rmsprop_t *data = malloc(sizeof(struct bb_opt_rmsprop_t));
+        struct bb_opt_rmsprop_t* data = malloc(sizeof(struct bb_opt_rmsprop_t));
 
         int weights_count   = vecSize(opt->weights);
         data->weights_count = weights_count;
@@ -190,8 +190,8 @@ _bbOptRMSPropInit(struct bb_opt_t *opt)
         vecSetSize(opt->ivs, weights_count);
 
         error_t         err;
-        struct vm_t    *vm = opt->vm;
-        struct shape_t *sp;
+        struct vm_t*    vm = opt->vm;
+        struct shape_t* sp;
         for (size_t i = 0; i < weights_count; i++) {
                 err = vmTensorInfo(vm, opt->weights[i], /*dtype=*/NULL, &sp);
                 if (err) return errEmitNote("failed to obtain weight shape.");
@@ -207,10 +207,10 @@ _bbOptRMSPropInit(struct bb_opt_t *opt)
 }
 
 error_t
-_bbOptRMSPropApply(struct bb_opt_t *opt, struct bb_program_t *p)
+_bbOptRMSPropApply(struct bb_opt_t* opt, struct bb_program_t* p)
 {
         size_t weights_count =
-            ((struct bb_opt_rmsprop_t *)opt->private_data)->weights_count;
+            ((struct bb_opt_rmsprop_t*)opt->private_data)->weights_count;
 
         // math:
         //
@@ -228,8 +228,8 @@ _bbOptRMSPropApply(struct bb_opt_t *opt, struct bb_program_t *p)
         //     t1 = t1 * g
         //     w = w - t1
 
-        struct bb_opt_rmsprop_config_t *cfg =
-            (struct bb_opt_rmsprop_config_t *)opt->config;
+        struct bb_opt_rmsprop_config_t* cfg =
+            (struct bb_opt_rmsprop_config_t*)opt->config;
 
         assert(cfg != NULL);
         float rho = cfg->rho;
@@ -282,9 +282,9 @@ struct bb_opt_adam_t {
 };
 
 error_t
-_bbOptAdamPropInit(struct bb_opt_t *opt)
+_bbOptAdamPropInit(struct bb_opt_t* opt)
 {
-        struct bb_opt_adam_t *data = malloc(sizeof(struct bb_opt_adam_t));
+        struct bb_opt_adam_t* data = malloc(sizeof(struct bb_opt_adam_t));
 
         int weights_count   = vecSize(opt->weights);
         data->weights_count = weights_count;
@@ -306,8 +306,8 @@ _bbOptAdamPropInit(struct bb_opt_t *opt)
         data->s2_i = 2 * weights_count + 1;
 
         error_t         err;
-        struct vm_t    *vm = opt->vm;
-        struct shape_t *sp;
+        struct vm_t*    vm = opt->vm;
+        struct shape_t* sp;
         size_t          offset = weights_count;
         for (size_t i = 0; i < weights_count; i++) {
                 err = vmTensorInfo(vm, opt->weights[i], /*dtype=*/NULL, &sp);
@@ -351,9 +351,9 @@ _bbOptAdamPropInit(struct bb_opt_t *opt)
 }
 
 error_t
-_bbOptAdamPropApply(struct bb_opt_t *opt, struct bb_program_t *p)
+_bbOptAdamPropApply(struct bb_opt_t* opt, struct bb_program_t* p)
 {
-        struct bb_opt_adam_t *data = (struct bb_opt_adam_t *)opt->private_data;
+        struct bb_opt_adam_t* data = (struct bb_opt_adam_t*)opt->private_data;
         size_t                weights_count = data->weights_count;
 
         // math:
@@ -393,8 +393,8 @@ _bbOptAdamPropApply(struct bb_opt_t *opt, struct bb_program_t *p)
         //     t1 = t1 * t2
         //     w = w - t1
 
-        struct bb_opt_adam_config_t *cfg =
-            (struct bb_opt_adam_config_t *)opt->config;
+        struct bb_opt_adam_config_t* cfg =
+            (struct bb_opt_adam_config_t*)opt->config;
 
         assert(cfg != NULL);
         float beta_1 = cfg->beta_1;
@@ -418,16 +418,16 @@ _bbOptAdamPropApply(struct bb_opt_t *opt, struct bb_program_t *p)
                                               .f    = epsilon};
         const struct opopt_t opopt_lr = {.mode = OPT_MODE_F_BIT, .f = opt->lr};
 
-        int *w = opt->weights;
-        int *g = opt->grads;
+        int* w = opt->weights;
+        int* g = opt->grads;
 
-        int *m1 = opt->states + data->m1_i;
-        int *m2 = opt->states + data->m2_i;
+        int* m1 = opt->states + data->m1_i;
+        int* m2 = opt->states + data->m2_i;
         int  b1 = opt->states[data->b1_i];
         int  b2 = opt->states[data->b2_i];
 
-        int *t1 = opt->ivs + data->t1_i;
-        int *t2 = opt->ivs + data->t2_i;
+        int* t1 = opt->ivs + data->t1_i;
+        int* t2 = opt->ivs + data->t2_i;
         int  s1 = opt->ivs[data->s1_i];
         int  s2 = opt->ivs[data->s2_i];
 

@@ -12,13 +12,13 @@
 // -----------------------------------------------------------------------------
 
 uint64_t
-hashFn(const void *key)
+hashFn(const void* key)
 {
         return (intptr_t)key;
 }
 
 int
-keyCmp(void *privdata, const void *key1, const void *key2)
+keyCmp(void* privdata, const void* key1, const void* key2)
 {
         return key1 == key2;
 }
@@ -33,7 +33,7 @@ struct dict_ty_t ty = {
 };
 
 error_t
-runDCEPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
+runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
 {
         sds_t s = sdsEmpty();
         if (debug) {
@@ -45,14 +45,14 @@ runDCEPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
         }
 
         error_t           err;
-        struct td_map_t  *map  = bbTdMapNew();
-        struct bb_inst_t *curr = fn->inst_list.head;
-        struct bb_inst_t *inst;
-        dict_t           *t = dictNew(&ty, NULL);
+        struct td_map_t*  map  = bbTdMapNew();
+        struct bb_inst_t* curr = fn->inst_list.head;
+        struct bb_inst_t* inst;
+        dict_t*           t = dictNew(&ty, NULL);
 
         // record map from td to inst.
         while (curr != NULL) {
-                err = bbTdMapFind(map, curr->op.dst, (void **)&inst);
+                err = bbTdMapFind(map, curr->op.dst, (void**)&inst);
                 if (err) return errEmitNote("failed to look up td.");
                 if (inst != NULL)
                         return errNew("do not support in-place update.");
@@ -72,11 +72,11 @@ runDCEPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
         }
 
         // push outputs to criticals.
-        vec_t(struct bb_inst_t *) criticals = vecNew();
-        size_t output_count                 = vecSize(fn->outputs);
+        vec_t(struct bb_inst_t*) criticals = vecNew();
+        size_t output_count                = vecSize(fn->outputs);
         for (size_t i = 0; i < output_count; i++) {
                 int td = fn->outputs[i];
-                err    = bbTdMapFind(map, td, (void **)&inst);
+                err    = bbTdMapFind(map, td, (void**)&inst);
                 if (err) return errEmitNote("failed to look up td.");
                 if (inst != NULL) {
                         vecPushBack(criticals, inst);
@@ -85,17 +85,17 @@ runDCEPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
 
         int existed;
         while (vecSize(criticals) > 0) {
-                struct bb_inst_t *inst_src;
+                struct bb_inst_t* inst_src;
                 inst = vecPopBack(criticals);
                 // mark
-                struct dict_entry_t *en = dictAddOrFind(t, inst, &existed);
+                struct dict_entry_t* en = dictAddOrFind(t, inst, &existed);
                 assert(!existed);
                 dictSetUIntVal(en, 1);
 
                 // put the instruction into criticals if not marked yet.
                 assert(inst != NULL);
                 if (inst->op.t1 >= 0) {
-                        err = bbTdMapFind(map, inst->op.t1, (void **)&inst_src);
+                        err = bbTdMapFind(map, inst->op.t1, (void**)&inst_src);
                         if (err) return errEmitNote("failed to look up td.");
                         if (inst_src != NULL) {
                                 en = dictFind(t, inst_src);
@@ -106,7 +106,7 @@ runDCEPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
 
                 // put the instruction into criticals if not marked yet.
                 if (inst->op.t2 >= 0) {
-                        err = bbTdMapFind(map, inst->op.t2, (void **)&inst_src);
+                        err = bbTdMapFind(map, inst->op.t2, (void**)&inst_src);
                         if (err) return errEmitNote("failed to look up td.");
                         if (inst_src != NULL) {
                                 en = dictFind(t, inst_src);
@@ -117,8 +117,8 @@ runDCEPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
 
                 if (inst->op.op == OP_LS_SCEL && inst->op.has_opt &&
                     inst->op.opt.mode & OPT_MODE_I_BIT) {
-                        err = bbTdMapFind(map, inst->op.opt.i,
-                                          (void **)&inst_src);
+                        err =
+                            bbTdMapFind(map, inst->op.opt.i, (void**)&inst_src);
                         if (err) return errEmitNote("failed to look up td.");
                         if (inst_src != NULL) {
                                 en = dictFind(t, inst_src);
@@ -131,13 +131,14 @@ runDCEPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
         int delete_count = 0;
         curr             = fn->inst_list.head;
         while (curr != NULL) {
-                struct dict_entry_t *en = dictFind(t, &curr->op);
+                struct dict_entry_t* en = dictFind(t, &curr->op);
                 if (en == NULL) {
-                        struct bb_inst_t *next = curr->next;
+                        struct bb_inst_t* next = curr->next;
 
                         if (debug) {
-                                printf("--> Delete inst for dst = %d\n",
-                                       curr->op.dst);
+                                sdsClear(s);
+                                bbInstDump(curr, &s);
+                                printf("--> Delete inst: %s\n", s);
                         }
                         delete_count++;
                         bbInstListDelete(&fn->inst_list, curr);
