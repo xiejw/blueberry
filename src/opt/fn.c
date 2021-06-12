@@ -4,17 +4,17 @@
 // Fn.
 // -----------------------------------------------------------------------------
 
-struct bb_fn_t*
+struct bb_fn_t *
 bbFnNew()
 {
         size_t          psize = sizeof(struct bb_fn_t);
-        struct bb_fn_t* p     = calloc(1, psize);
+        struct bb_fn_t *p     = calloc(1, psize);
         bbInstListReset(&p->inst_list);
         return p;
 }
 
 void
-bbFnFree(struct bb_fn_t* p)
+bbFnFree(struct bb_fn_t *p)
 {
         if (p == NULL) return;
         vecFree(p->inputs);
@@ -24,13 +24,13 @@ bbFnFree(struct bb_fn_t* p)
 }
 
 void
-bbFnAppend(struct bb_fn_t* p, struct oparg_t* op)
+bbFnAppend(struct bb_fn_t *p, struct oparg_t *op)
 {
         bbInstListAppend(&p->inst_list, op);
 }
 
 void
-bbFnDump(struct bb_fn_t* fn, sds_t* s)
+bbFnDump(struct bb_fn_t *fn, sds_t *s)
 {
         sdsCatPrintf(s, "fn:\n");
 

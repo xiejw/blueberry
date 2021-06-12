@@ -8,9 +8,9 @@
 // Helper.
 // -----------------------------------------------------------------------------
 static error_t
-_bbInitTensor(struct vm_t* vm, int td, int mode, struct srng64_t* rng)
+_bbInitTensor(struct vm_t *vm, int td, int mode, struct srng64_t *rng)
 {
-        struct srng64_t* r;
+        struct srng64_t *r;
         struct opopt_t   opt;
         switch (mode) {
         case BB_INIT_ZERO:
@@ -18,7 +18,7 @@ _bbInitTensor(struct vm_t* vm, int td, int mode, struct srng64_t* rng)
         case BB_INIT_STD_NORMAL:
                 r        = srng64Split(rng);
                 opt.mode = OPT_RNG_STD_NORMAL | OPT_MODE_R_BIT;
-                opt.r    = *(struct rng64_t*)r;
+                opt.r    = *(struct rng64_t *)r;
                 free(r);
                 return vmExec(vm, OP_RNG, &opt, td, -1, -1);
         default:
@@ -26,19 +26,20 @@ _bbInitTensor(struct vm_t* vm, int td, int mode, struct srng64_t* rng)
         }
 }
 
-#define DECLARE_LAYER_METHODS(name)                                            \
-        static error_t _bb##name##Init(                                        \
-            struct bb_layer_t*, const struct bb_context_t*, struct srng64_t*); \
-        static error_t _bb##name##Jit(                                         \
-            struct bb_layer_t*, const struct bb_context_t*,                    \
-            struct bb_program_t*, int direction, const vec_t(int) inputs,      \
+#define DECLARE_LAYER_METHODS(name)                                        \
+        static error_t _bb##name##Init(struct bb_layer_t *,                \
+                                       const struct bb_context_t *,        \
+                                       struct srng64_t *);                 \
+        static error_t _bb##name##Jit(                                     \
+            struct bb_layer_t *, const struct bb_context_t *,              \
+            struct bb_program_t *, int direction, const vec_t(int) inputs, \
             vec_t(int) * outputs)
 
 // defs in bb.c
-error_t _bbLayerGrads(struct bb_layer_t*, vec_t(int) *);
-error_t _bbLayerWeights(struct bb_layer_t*, vec_t(int) *);
-error_t _bbLayerStates(struct bb_layer_t*, vec_t(int) *);
-error_t _bbLayerRelease(struct bb_layer_t*);
+error_t _bbLayerGrads(struct bb_layer_t *, vec_t(int) *);
+error_t _bbLayerWeights(struct bb_layer_t *, vec_t(int) *);
+error_t _bbLayerStates(struct bb_layer_t *, vec_t(int) *);
+error_t _bbLayerRelease(struct bb_layer_t *);
 
 // -----------------------------------------------------------------------------
 // Impl for Dense.
@@ -46,8 +47,8 @@ error_t _bbLayerRelease(struct bb_layer_t*);
 DECLARE_LAYER_METHODS(Dense);
 
 error_t
-bbDenseLayer(struct vm_t* vm, const struct bb_dense_config_t* cfg,
-             struct bb_layer_t** out)
+bbDenseLayer(struct vm_t *vm, const struct bb_dense_config_t *cfg,
+             struct bb_layer_t **out)
 {
         // error checks.
         if (cfg->input_dim <= 0)
@@ -68,12 +69,12 @@ bbDenseLayer(struct vm_t* vm, const struct bb_dense_config_t* cfg,
                 return errNew("bias init is out of range; got %d",
                               cfg->bias_init);
 
-        struct bb_dense_layer_t* l = malloc(sizeof(struct bb_dense_layer_t));
+        struct bb_dense_layer_t *l = malloc(sizeof(struct bb_dense_layer_t));
         memset(l, 0, sizeof(struct bb_dense_layer_t));
         l->base.vm = vm;
         l->config  = *cfg;
 
-        struct bb_layer_operations_t* ops = &l->base.ops;
+        struct bb_layer_operations_t *ops = &l->base.ops;
         ops->init                         = _bbDenseInit;
         ops->release                      = _bbLayerRelease;
         ops->weights                      = _bbLayerWeights;
@@ -81,22 +82,22 @@ bbDenseLayer(struct vm_t* vm, const struct bb_dense_config_t* cfg,
         ops->states                       = _bbLayerStates;
         ops->jit                          = _bbDenseJit;
 
-        *out = (struct bb_layer_t*)l;
+        *out = (struct bb_layer_t *)l;
         return OK;
 }
 
 error_t
-_bbDenseInit(struct bb_layer_t* self, const struct bb_context_t* ctx,
-             struct srng64_t* rng)
+_bbDenseInit(struct bb_layer_t *self, const struct bb_context_t *ctx,
+             struct srng64_t *rng)
 {
-        struct bb_dense_layer_t* this       = (struct bb_dense_layer_t*)self;
-        struct vm_t*                    vm  = self->vm;
-        const struct bb_dense_config_t* cfg = &this->config;
+        struct bb_dense_layer_t *this       = (struct bb_dense_layer_t *)self;
+        struct vm_t                    *vm  = self->vm;
+        const struct bb_dense_config_t *cfg = &this->config;
         int has_bias                        = cfg->bias_init != BB_INIT_NULL;
         int is_training                     = ctx->is_training;
 
         // create the shapes, weights, and grads if training.
-        struct shape_t* sp_w = R2S(vm, cfg->input_dim, cfg->output_dim);
+        struct shape_t *sp_w = R2S(vm, cfg->input_dim, cfg->output_dim);
 
 #define ALLOC_STATE(name, sp, collection)         \
         int name = vmTensorNew(vm, F32, sp);      \
@@ -110,7 +111,7 @@ _bbDenseInit(struct bb_layer_t* self, const struct bb_context_t* ctx,
         }
 
         if (has_bias) {
-                struct shape_t* sp_b = R1S(vm, cfg->output_dim);
+                struct shape_t *sp_b = R1S(vm, cfg->output_dim);
                 ALLOC_STATE(b, sp_b, weights);
                 _bbInitTensor(vm, b, cfg->bias_init, rng);
 
@@ -124,14 +125,14 @@ _bbDenseInit(struct bb_layer_t* self, const struct bb_context_t* ctx,
 }
 
 error_t
-_bbDenseJit(struct bb_layer_t* self, const struct bb_context_t* ctx,
-            struct bb_program_t* p, int direction, const vec_t(int) inputs,
+_bbDenseJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
+            struct bb_program_t *p, int direction, const vec_t(int) inputs,
             vec_t(int) * outputs)
 {
         error_t err;
-        struct bb_dense_layer_t* this       = (struct bb_dense_layer_t*)self;
-        struct vm_t*                    vm  = self->vm;
-        const struct bb_dense_config_t* cfg = &this->config;
+        struct bb_dense_layer_t *this       = (struct bb_dense_layer_t *)self;
+        struct vm_t                    *vm  = self->vm;
+        const struct bb_dense_config_t *cfg = &this->config;
         int has_bias                        = cfg->bias_init != BB_INIT_NULL;
         int has_relu                        = cfg->actn == BB_ACTN_RELU;
 
@@ -145,7 +146,7 @@ _bbDenseJit(struct bb_layer_t* self, const struct bb_context_t* ctx,
 
         int bs;
         {
-                struct shape_t* sp_x;
+                struct shape_t *sp_x;
                 // checks the shape of input and gets the batch size.
                 err = vmTensorInfo(vm, inputs[0], /*dtype=*/NULL, &sp_x);
                 if (err) return errEmitNote("failed to grab the input shape.");
@@ -180,7 +181,7 @@ _bbDenseJit(struct bb_layer_t* self, const struct bb_context_t* ctx,
         }
 
         // stage 2: allocate intermediate values (iv).
-        struct shape_t* sp_h = R2S(vm, bs, cfg->output_dim);
+        struct shape_t *sp_h = R2S(vm, bs, cfg->output_dim);
         if (direction == BB_FORWARD) {
                 ALLOC_T(h, sp_h);
                 if (has_bias) ALLOC_T(hb, sp_h);
@@ -191,7 +192,7 @@ _bbDenseJit(struct bb_layer_t* self, const struct bb_context_t* ctx,
                         ALLOC_T(state, sp_h);
                         ALLOC_T(d_hb, sp_h);
                 }
-                struct shape_t* sp_x = R2S(vm, bs, cfg->input_dim);
+                struct shape_t *sp_x = R2S(vm, bs, cfg->input_dim);
                 ALLOC_T(d_x, sp_x);
         }
 
@@ -277,8 +278,8 @@ _bbDenseJit(struct bb_layer_t* self, const struct bb_context_t* ctx,
 DECLARE_LAYER_METHODS(SCEL);
 
 error_t
-bbSCELLayer(struct vm_t* vm, const struct bb_scel_config_t* cfg,
-            struct bb_layer_t** out)
+bbSCELLayer(struct vm_t *vm, const struct bb_scel_config_t *cfg,
+            struct bb_layer_t **out)
 {
         // error checks.
         if (!(cfg->reduction == BB_REDUCTION_SUM ||
@@ -286,12 +287,12 @@ bbSCELLayer(struct vm_t* vm, const struct bb_scel_config_t* cfg,
                 return errNew("reduction must be SUM or MEAN; got %d",
                               cfg->reduction);
 
-        struct bb_scel_layer_t* l = malloc(sizeof(struct bb_scel_layer_t));
+        struct bb_scel_layer_t *l = malloc(sizeof(struct bb_scel_layer_t));
         memset(l, 0, sizeof(struct bb_scel_layer_t));
         l->base.vm = vm;
         l->config  = *cfg;
 
-        struct bb_layer_operations_t* ops = &l->base.ops;
+        struct bb_layer_operations_t *ops = &l->base.ops;
         ops->init                         = _bbSCELInit;
         ops->release                      = _bbLayerRelease;
         ops->weights                      = _bbLayerWeights;
@@ -299,27 +300,27 @@ bbSCELLayer(struct vm_t* vm, const struct bb_scel_config_t* cfg,
         ops->states                       = _bbLayerStates;
         ops->jit                          = _bbSCELJit;
 
-        *out = (struct bb_layer_t*)l;
+        *out = (struct bb_layer_t *)l;
         return OK;
 }
 
 error_t
-_bbSCELInit(struct bb_layer_t* self, const struct bb_context_t* ctx,
-            struct srng64_t* rng)
+_bbSCELInit(struct bb_layer_t *self, const struct bb_context_t *ctx,
+            struct srng64_t *rng)
 {
         // no weights/grads.
         return OK;
 }
 
 error_t
-_bbSCELJit(struct bb_layer_t* self, const struct bb_context_t* ctx,
-           struct bb_program_t* p, int direction, const vec_t(int) inputs,
+_bbSCELJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
+           struct bb_program_t *p, int direction, const vec_t(int) inputs,
            vec_t(int) * outputs)
 {
         error_t err;
-        struct bb_scel_layer_t* this       = (struct bb_scel_layer_t*)self;
-        struct vm_t*                   vm  = self->vm;
-        const struct bb_scel_config_t* cfg = &this->config;
+        struct bb_scel_layer_t *this       = (struct bb_scel_layer_t *)self;
+        struct vm_t                   *vm  = self->vm;
+        const struct bb_scel_config_t *cfg = &this->config;
         int                            is_training = ctx->is_training;
         int reduce_mean = cfg->reduction == BB_REDUCTION_MEAN;
 
@@ -337,7 +338,7 @@ _bbSCELJit(struct bb_layer_t* self, const struct bb_context_t* ctx,
                                     "expect two inputs for scel layer. got %d",
                                     vecSize(inputs));
 
-                        struct shape_t* sp_x;
+                        struct shape_t *sp_x;
                         err =
                             vmTensorInfo(vm, inputs[1], /*dtype=*/NULL, &sp_x);
                         if (err)
@@ -373,9 +374,9 @@ _bbSCELJit(struct bb_layer_t* self, const struct bb_context_t* ctx,
 
         // stage 2: allocate intermediate values (iv).
         if (direction == BB_FORWARD) {
-                struct shape_t* sp_x = R2S(vm, bs, input_dim);
-                struct shape_t* sp_o = R1S(vm, bs);
-                struct shape_t* sp_r = R1S(vm, 1);
+                struct shape_t *sp_x = R2S(vm, bs, input_dim);
+                struct shape_t *sp_o = R1S(vm, bs);
+                struct shape_t *sp_r = R1S(vm, 1);
                 ALLOC_T(o, sp_o);
                 ALLOC_T(r, sp_r);
                 if (is_training) {
@@ -385,7 +386,7 @@ _bbSCELJit(struct bb_layer_t* self, const struct bb_context_t* ctx,
                 }
         } else {
                 if (reduce_mean) {
-                        struct shape_t* sp_r = R1S(vm, 1);
+                        struct shape_t *sp_r = R1S(vm, 1);
                         ALLOC_T(d_r, sp_r);
                 }
         }
@@ -462,16 +463,16 @@ _bbSCELJit(struct bb_layer_t* self, const struct bb_context_t* ctx,
 // -----------------------------------------------------------------------------
 DECLARE_LAYER_METHODS(AUC);
 
-static error_t _bbAUCSummary(struct bb_layer_t*, void* data, int flag);
+static error_t _bbAUCSummary(struct bb_layer_t *, void *data, int flag);
 
 error_t
-bbAUCMetric(struct vm_t* vm, struct bb_layer_t** out)
+bbAUCMetric(struct vm_t *vm, struct bb_layer_t **out)
 {
-        struct bb_auc_layer_t* l = malloc(sizeof(struct bb_auc_layer_t));
+        struct bb_auc_layer_t *l = malloc(sizeof(struct bb_auc_layer_t));
         memset(l, 0, sizeof(struct bb_auc_layer_t));
         l->base.vm = vm;
 
-        struct bb_layer_operations_t* ops = &l->base.ops;
+        struct bb_layer_operations_t *ops = &l->base.ops;
         ops->init                         = _bbAUCInit;
         ops->release                      = _bbLayerRelease;
         ops->weights                      = _bbLayerWeights;
@@ -480,19 +481,19 @@ bbAUCMetric(struct vm_t* vm, struct bb_layer_t** out)
         ops->jit                          = _bbAUCJit;
         ops->summary                      = _bbAUCSummary;
 
-        *out = (struct bb_layer_t*)l;
+        *out = (struct bb_layer_t *)l;
         return OK;
 }
 
 error_t
-_bbAUCInit(struct bb_layer_t* self, const struct bb_context_t* ctx,
-           struct srng64_t* rng)
+_bbAUCInit(struct bb_layer_t *self, const struct bb_context_t *ctx,
+           struct srng64_t *rng)
 {
-        struct bb_auc_layer_t* this = (struct bb_auc_layer_t*)self;
-        struct vm_t* vm             = self->vm;
+        struct bb_auc_layer_t *this = (struct bb_auc_layer_t *)self;
+        struct vm_t *vm             = self->vm;
 
         // create the shapes, states and save into ivs
-        struct shape_t* sp = R1S(vm, 1);
+        struct shape_t *sp = R1S(vm, 1);
 
 #define ALLOC_STATE(name, sp, collection)         \
         int name = vmTensorNew(vm, F32, sp);      \
@@ -510,13 +511,13 @@ _bbAUCInit(struct bb_layer_t* self, const struct bb_context_t* ctx,
 }
 
 error_t
-_bbAUCJit(struct bb_layer_t* self, const struct bb_context_t* ctx,
-          struct bb_program_t* p, int direction, const vec_t(int) inputs,
+_bbAUCJit(struct bb_layer_t *self, const struct bb_context_t *ctx,
+          struct bb_program_t *p, int direction, const vec_t(int) inputs,
           vec_t(int) * outputs)
 {
         error_t err;
-        struct bb_auc_layer_t* this = (struct bb_auc_layer_t*)self;
-        struct vm_t* vm             = self->vm;
+        struct bb_auc_layer_t *this = (struct bb_auc_layer_t *)self;
+        struct vm_t *vm             = self->vm;
 
         assert(direction == BB_FORWARD);
 
@@ -527,7 +528,7 @@ _bbAUCJit(struct bb_layer_t* self, const struct bb_context_t* ctx,
                         return errNew("expect two inputs for metric. got %d",
                                       vecSize(inputs));
 
-                struct shape_t* sp_x;
+                struct shape_t *sp_x;
                 err = vmTensorInfo(vm, inputs[1], /*dtype=*/NULL, &sp_x);
                 if (err) return errEmitNote("failed to grab the input shape.");
                 if (sp_x->rank != 2)
@@ -547,8 +548,8 @@ _bbAUCJit(struct bb_layer_t* self, const struct bb_context_t* ctx,
         }
 
         // stage 2: allocate intermediate values (iv).
-        struct shape_t* sp_arg = R1S(vm, bs);
-        struct shape_t* sp_r   = R1S(vm, 1);
+        struct shape_t *sp_arg = R1S(vm, bs);
+        struct shape_t *sp_r   = R1S(vm, 1);
         ALLOC_T(arg_y, sp_arg);
         ALLOC_T(arg_x, sp_arg);
         ALLOC_T(same, sp_arg);
@@ -580,28 +581,28 @@ _bbAUCJit(struct bb_layer_t* self, const struct bb_context_t* ctx,
 }
 
 error_t
-_bbAUCSummary(struct bb_layer_t* self, void* data, int flag)
+_bbAUCSummary(struct bb_layer_t *self, void *data, int flag)
 {
-        struct bb_auc_layer_t* this = (struct bb_auc_layer_t*)self;
-        struct vm_t* vm             = self->vm;
+        struct bb_auc_layer_t *this = (struct bb_auc_layer_t *)self;
+        struct vm_t *vm             = self->vm;
 
         error_t err;
         float   auc;
         float   count;
         float   total;
 
-        float* buf;
+        float *buf;
 
-        err = vmTensorData(vm, this->count, (void**)&buf);
+        err = vmTensorData(vm, this->count, (void **)&buf);
         if (err) return errEmitNote("failed to get the data of count.");
         count = *buf;
 
-        err = vmTensorData(vm, this->total, (void**)&buf);
+        err = vmTensorData(vm, this->total, (void **)&buf);
         if (err) return errEmitNote("failed to get the data of total.");
         total = *buf;
 
-        auc           = count / total;
-        *(float*)data = auc;
+        auc            = count / total;
+        *(float *)data = auc;
 
         if (flag & BB_FLAG_RESET) {
                 _bbInitTensor(vm, this->total, BB_INIT_ZERO, NULL);

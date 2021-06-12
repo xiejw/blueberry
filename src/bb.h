@@ -14,29 +14,29 @@
 // Program APIs.  // prop.c
 // -----------------------------------------------------------------------------
 
-struct vm_t* bbVmInit();  // put some preallocated tds.
+struct vm_t *bbVmInit();  // put some preallocated tds.
 
 struct bb_inst_t {
         struct oparg_t    op;
-        struct bb_inst_t* next;
-        struct bb_inst_t* prev;
+        struct bb_inst_t *next;
+        struct bb_inst_t *prev;
 };
 
-void bbInstDump(struct bb_inst_t* inst, sds_t* s);
-void bbInstInputs(struct bb_inst_t*, _mut_ vec_t(int) *);
-void bbInstOutputs(struct bb_inst_t*, _mut_ vec_t(int) *);
+void bbInstDump(struct bb_inst_t *inst, sds_t *s);
+void bbInstInputs(struct bb_inst_t *, _mut_ vec_t(int) *);
+void bbInstOutputs(struct bb_inst_t *, _mut_ vec_t(int) *);
 
 struct bb_inst_list_t {
         int               count;
-        struct bb_inst_t* head;
-        struct bb_inst_t* tail;
+        struct bb_inst_t *head;
+        struct bb_inst_t *tail;
 };
 
-void bbInstListReset(struct bb_inst_list_t* list);
-void bbInstListFree(struct bb_inst_list_t* list);
-void bbInstListAppend(struct bb_inst_list_t* list, struct oparg_t* op);
-void bbInstListDelete(struct bb_inst_list_t* list, struct bb_inst_t*);
-void bbInstListDump(struct bb_inst_list_t* list, sds_t* s);
+void bbInstListReset(struct bb_inst_list_t *list);
+void bbInstListFree(struct bb_inst_list_t *list);
+void bbInstListAppend(struct bb_inst_list_t *list, struct oparg_t *op);
+void bbInstListDelete(struct bb_inst_list_t *list, struct bb_inst_t *);
+void bbInstListDump(struct bb_inst_list_t *list, sds_t *s);
 
 struct bb_program_t {
         vec_t(int) inputs;   // ele unowned.
@@ -48,12 +48,12 @@ struct bb_program_t {
         struct bb_inst_list_t inst_list;
 };
 
-struct bb_program_t* bbProgNew();
-void                 bbProgFree(struct bb_program_t*);
-void                 bbProgAppend(struct bb_program_t*, struct oparg_t*);
-void                 bbProgDump(struct bb_program_t*, _mut_ sds_t*);
-error_t bbProgCompileToBatchOps(struct bb_program_t*, _out_ int* count,
-                                _out_ struct oparg_t** out);
+struct bb_program_t *bbProgNew();
+void                 bbProgFree(struct bb_program_t *);
+void                 bbProgAppend(struct bb_program_t *, struct oparg_t *);
+void                 bbProgDump(struct bb_program_t *, _mut_ sds_t *);
+error_t bbProgCompileToBatchOps(struct bb_program_t *, _out_ int *count,
+                                _out_ struct oparg_t **out);
 
 // -----------------------------------------------------------------------------
 // Constants.
@@ -90,20 +90,20 @@ struct bb_context_t {
 struct bb_layer_t;
 
 struct bb_layer_operations_t {
-        error_t (*init)(struct bb_layer_t*, const struct bb_context_t*,
-                        struct srng64_t*);
-        error_t (*release)(struct bb_layer_t*);
+        error_t (*init)(struct bb_layer_t *, const struct bb_context_t *,
+                        struct srng64_t *);
+        error_t (*release)(struct bb_layer_t *);
 
-        error_t (*weights)(struct bb_layer_t*, _mut_ vec_t(int) * tds);
-        error_t (*grads)(struct bb_layer_t*, _mut_ vec_t(int) * tds);
-        error_t (*states)(struct bb_layer_t*, _mut_ vec_t(int) * tds);
+        error_t (*weights)(struct bb_layer_t *, _mut_ vec_t(int) * tds);
+        error_t (*grads)(struct bb_layer_t *, _mut_ vec_t(int) * tds);
+        error_t (*states)(struct bb_layer_t *, _mut_ vec_t(int) * tds);
 
-        error_t (*jit)(struct bb_layer_t*, const struct bb_context_t*,
-                       struct bb_program_t*, int      direction,
+        error_t (*jit)(struct bb_layer_t *, const struct bb_context_t *,
+                       struct bb_program_t *, int     direction,
                        const vec_t(int) inputs, _mut_ vec_t(int) * outputs);
 
         // metric only
-        error_t (*summary)(struct bb_layer_t*, _mut_ void* data, int flag);
+        error_t (*summary)(struct bb_layer_t *, _mut_ void *data, int flag);
 };
 
 // Same for Layer, Loss, Metric.
@@ -113,11 +113,11 @@ struct bb_layer_t {
         vec_t(int) states;   // grads for weights in order.
         vec_t(int) ivs;      // intermediate values.
 
-        struct vm_t*                 vm;  // unowned.
+        struct vm_t                 *vm;  // unowned.
         struct bb_layer_operations_t ops;
 };
 
-void bbLayerFree(struct bb_layer_t*);
+void bbLayerFree(struct bb_layer_t *);
 
 // The following header file provides the layer definition and factory method to
 // create them.
@@ -129,14 +129,14 @@ void bbLayerFree(struct bb_layer_t*);
 
 struct bb_opt_t {
         float32_t    lr;
-        struct vm_t* vm;  // unowned.
+        struct vm_t *vm;  // unowned.
         int          type;
         vec_t(int) weights;  // unowned.
         vec_t(int) grads;    // unowned
         vec_t(int) states;   // owned.
         vec_t(int) ivs;      // owned.
-        void* config;        // owned.
-        void* private_data;  // owned.
+        void *config;        // owned.
+        void *private_data;  // owned.
 };
 
 struct bb_opt_rmsprop_config_t {
@@ -150,11 +150,11 @@ struct bb_opt_adam_config_t {
         float epsilon;  // suggested 1e-8
 };
 
-error_t bbOptNew(struct vm_t* vm, int type, float32_t lr, void* cfg,
-                 _out_ struct bb_opt_t**);
-error_t bbOptInit(struct bb_opt_t*, vec_t(int) weights, vec_t(int) grads);
-error_t bbOptApply(struct bb_opt_t*, struct bb_program_t*);
-void    bbOptFree(struct bb_opt_t*);
+error_t bbOptNew(struct vm_t *vm, int type, float32_t lr, void *cfg,
+                 _out_ struct bb_opt_t **);
+error_t bbOptInit(struct bb_opt_t *, vec_t(int) weights, vec_t(int) grads);
+error_t bbOptApply(struct bb_opt_t *, struct bb_program_t *);
+void    bbOptFree(struct bb_opt_t *);
 
 // -----------------------------------------------------------------------------
 // Module APIs.  // module.c
@@ -163,18 +163,18 @@ void    bbOptFree(struct bb_opt_t*);
 struct bb_seq_module_t {
         int x;
         int y;
-        vec_t(struct bb_layer_t*) layers;  // owned.
-        struct bb_layer_t* loss;           // owned.
-        struct bb_opt_t*   opt;            // owned.
-        struct bb_layer_t* metric;         // owned.
-        struct srng64_t*   r;              // owned.
+        vec_t(struct bb_layer_t *) layers;  // owned.
+        struct bb_layer_t *loss;            // owned.
+        struct bb_opt_t   *opt;             // owned.
+        struct bb_layer_t *metric;          // owned.
+        struct srng64_t   *r;               // owned.
 };
 
-struct bb_seq_module_t* bbSeqModuleNew();
-void                    bbSeqModuleFree(struct bb_seq_module_t*);
+struct bb_seq_module_t *bbSeqModuleNew();
+void                    bbSeqModuleFree(struct bb_seq_module_t *);
 
-error_t bbCompileSeqModule(const struct bb_context_t* ctx,
-                           struct bb_program_t* p, struct bb_seq_module_t*);
+error_t bbCompileSeqModule(const struct bb_context_t *ctx,
+                           struct bb_program_t *p, struct bb_seq_module_t *);
 
 // -----------------------------------------------------------------------------
 // Experimental way to create Layers.
@@ -188,11 +188,11 @@ error_t bbCompileSeqModule(const struct bb_context_t* ctx,
 
 struct bb_layer_config_t {
         int   tag;
-        void* config;  // unowned
+        void *config;  // unowned
 };
 
-error_t bbCreateLayers(struct vm_t*                    vm,
-                       const struct bb_layer_config_t* layer_configs,
-                       _out_ vec_t(struct bb_layer_t*) * layers);
+error_t bbCreateLayers(struct vm_t                    *vm,
+                       const struct bb_layer_config_t *layer_configs,
+                       _out_ vec_t(struct bb_layer_t *) * layers);
 
 #endif

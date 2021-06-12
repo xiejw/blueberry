@@ -3,7 +3,7 @@
 #include <string.h>
 
 static void
-bbOpDump(sds_t* s, struct opopt_t* opt)
+bbOpDump(sds_t *s, struct opopt_t *opt)
 {
         // dump like
         //
@@ -27,9 +27,9 @@ bbOpDump(sds_t* s, struct opopt_t* opt)
 // -----------------------------------------------------------------------------
 
 void
-bbInstDump(struct bb_inst_t* inst, sds_t* s)
+bbInstDump(struct bb_inst_t *inst, sds_t *s)
 {
-        char* opname;
+        char *opname;
         switch (inst->op.op) {
         case OP_MATMUL:
                 opname = "OP_MATMUL";
@@ -70,7 +70,7 @@ bbInstDump(struct bb_inst_t* inst, sds_t* s)
         default:
                 opname = "UNKNOWN";
         }
-        struct oparg_t* op = &inst->op;
+        struct oparg_t *op = &inst->op;
         sdsCatPrintf(s,
                      "{.op = %2d (%-10s), .dst = %3d, .t1 = "
                      "%3d, .t2 = %3d",
@@ -85,14 +85,14 @@ bbInstDump(struct bb_inst_t* inst, sds_t* s)
 }
 
 void
-bbInstInputs(struct bb_inst_t* inst, vec_t(int) * inputs)
+bbInstInputs(struct bb_inst_t *inst, vec_t(int) * inputs)
 {
         if (inst->op.t1 >= 0) vecPushBack(*inputs, inst->op.t1);
         if (inst->op.t2 >= 0) vecPushBack(*inputs, inst->op.t2);
 }
 
 void
-bbInstOutputs(struct bb_inst_t* inst, vec_t(int) * outputs)
+bbInstOutputs(struct bb_inst_t *inst, vec_t(int) * outputs)
 {
         vecPushBack(*outputs, inst->op.dst);
         if (inst->op.op == OP_LS_SCEL && inst->op.has_opt &&
@@ -106,13 +106,13 @@ bbInstOutputs(struct bb_inst_t* inst, vec_t(int) * outputs)
 // -----------------------------------------------------------------------------
 
 void
-bbInstListReset(struct bb_inst_list_t* list)
+bbInstListReset(struct bb_inst_list_t *list)
 {
         memset(list, 0, sizeof(*list));
 }
 
 void
-bbInstListFree(struct bb_inst_list_t* list)
+bbInstListFree(struct bb_inst_list_t *list)
 {
         struct bb_inst_t *next, *curr;
         curr = list->head;
@@ -124,13 +124,13 @@ bbInstListFree(struct bb_inst_list_t* list)
 }
 
 void
-bbInstListAppend(struct bb_inst_list_t* list, struct oparg_t* op)
+bbInstListAppend(struct bb_inst_list_t *list, struct oparg_t *op)
 {
-        struct bb_inst_t* inst = malloc(sizeof(struct bb_inst_t));
+        struct bb_inst_t *inst = malloc(sizeof(struct bb_inst_t));
         inst->op               = *op;
         inst->next             = NULL;
 
-        struct bb_inst_t* tail = list->tail;
+        struct bb_inst_t *tail = list->tail;
 
         if (list->head == NULL) {
                 inst->prev = NULL;
@@ -146,7 +146,7 @@ bbInstListAppend(struct bb_inst_list_t* list, struct oparg_t* op)
 }
 
 void
-bbInstListDelete(struct bb_inst_list_t* list, struct bb_inst_t* inst)
+bbInstListDelete(struct bb_inst_list_t *list, struct bb_inst_t *inst)
 {
         assert(list->head != NULL);
 
@@ -170,7 +170,7 @@ bbInstListDelete(struct bb_inst_list_t* list, struct bb_inst_t* inst)
 }
 
 void
-bbInstListDump(struct bb_inst_list_t* list, sds_t* s)
+bbInstListDump(struct bb_inst_list_t *list, sds_t *s)
 {
         sdsCatPrintf(s, "{  // ops\n");
         if (list->head == NULL) {
@@ -179,7 +179,7 @@ bbInstListDump(struct bb_inst_list_t* list, sds_t* s)
                 return;
         }
 
-        struct bb_inst_t* curr;
+        struct bb_inst_t *curr;
         curr = list->head;
         while (curr != NULL) {
                 sdsCatPrintf(s, "  ");
@@ -194,16 +194,16 @@ bbInstListDump(struct bb_inst_list_t* list, sds_t* s)
 // Impl for Program.
 // -----------------------------------------------------------------------------
 
-struct bb_program_t*
+struct bb_program_t *
 bbProgNew()
 {
-        struct bb_program_t* p = calloc(1, sizeof(struct bb_program_t));
+        struct bb_program_t *p = calloc(1, sizeof(struct bb_program_t));
         if (p == NULL) return NULL;
         bbInstListReset(&p->inst_list);
         return p;
 }
 void
-bbProgFree(struct bb_program_t* p)
+bbProgFree(struct bb_program_t *p)
 {
         if (p == NULL) return;
         bbInstListFree(&p->inst_list);
@@ -217,16 +217,16 @@ bbProgFree(struct bb_program_t* p)
 }
 
 void
-bbProgAppend(struct bb_program_t* p, struct oparg_t* op)
+bbProgAppend(struct bb_program_t *p, struct oparg_t *op)
 {
         bbInstListAppend(&p->inst_list, op);
 }
 
 error_t
-bbProgCompileToBatchOps(struct bb_program_t* p, int* out_count,
-                        struct oparg_t** out)
+bbProgCompileToBatchOps(struct bb_program_t *p, int *out_count,
+                        struct oparg_t **out)
 {
-        struct bb_inst_list_t* list  = &p->inst_list;
+        struct bb_inst_list_t *list  = &p->inst_list;
         size_t                 count = list->count;
         if (count == 0) {
                 *out_count = 0;
@@ -234,9 +234,9 @@ bbProgCompileToBatchOps(struct bb_program_t* p, int* out_count,
                 return OK;
         }
 
-        struct oparg_t* ops = malloc(count * sizeof(struct oparg_t));
+        struct oparg_t *ops = malloc(count * sizeof(struct oparg_t));
 
-        struct bb_inst_t* curr = list->head;
+        struct bb_inst_t *curr = list->head;
         for (size_t i = 0; i < count; i++) {
                 assert(curr != NULL);
                 *(ops + i) = curr->op;
@@ -249,7 +249,7 @@ bbProgCompileToBatchOps(struct bb_program_t* p, int* out_count,
 }
 
 void
-bbProgDump(struct bb_program_t* p, sds_t* s)
+bbProgDump(struct bb_program_t *p, sds_t *s)
 {
         sdsCatPrintf(s, "program:\n");
 

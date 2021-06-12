@@ -8,7 +8,7 @@ main()
         sds_t s = sdsEmpty();
         printf("Hello opt.\n");
 
-        struct bb_fn_t* fn = bbFnNew();
+        struct bb_fn_t *fn = bbFnNew();
 
         vecPushBack(fn->inputs, 1);
         vecPushBack(fn->inputs, 2);

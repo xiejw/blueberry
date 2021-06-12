@@ -12,13 +12,13 @@
 // -----------------------------------------------------------------------------
 
 static uint64_t
-hashFn(const void* key)
+hashFn(const void *key)
 {
         return (intptr_t)key;
 }
 
 static int
-keyCmp(void* privdata, const void* key1, const void* key2)
+keyCmp(void *privdata, const void *key1, const void *key2)
 {
         return key1 == key2;
 }
@@ -33,7 +33,7 @@ struct dict_ty_t ty = {
 };
 
 error_t
-runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
+runDCEPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
 {
         sds_t s = sdsEmpty();
         if (debug) {
@@ -45,10 +45,10 @@ runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
         }
 
         error_t           err;
-        struct td_map_t*  map  = bbTdMapNew();
-        struct bb_inst_t* curr = fn->inst_list.head;
-        struct bb_inst_t* inst;
-        dict_t*           t = dictNew(&ty, NULL);
+        struct td_map_t  *map  = bbTdMapNew();
+        struct bb_inst_t *curr = fn->inst_list.head;
+        struct bb_inst_t *inst;
+        dict_t           *t = dictNew(&ty, NULL);
 
         vec_t(int) inputs  = vecNew();
         vec_t(int) outputs = vecNew();
@@ -59,7 +59,7 @@ runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
                 bbInstOutputs(curr, &outputs);
                 for (int i = 0; i < vecSize(outputs); i++) {
                         int td = outputs[i];
-                        err    = bbTdMapFind(map, td, (void**)&inst);
+                        err    = bbTdMapFind(map, td, (void **)&inst);
                         if (err) return errEmitNote("failed to look up td.");
                         if (inst != NULL)
                                 return errNew(
@@ -74,11 +74,11 @@ runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
         }
 
         // push outputs to criticals.
-        vec_t(struct bb_inst_t*) criticals = vecNew();
-        size_t output_count                = vecSize(fn->outputs);
+        vec_t(struct bb_inst_t *) criticals = vecNew();
+        size_t output_count                 = vecSize(fn->outputs);
         for (size_t i = 0; i < output_count; i++) {
                 int td = fn->outputs[i];
-                err    = bbTdMapFind(map, td, (void**)&inst);
+                err    = bbTdMapFind(map, td, (void **)&inst);
                 if (err) return errEmitNote("failed to look up td.");
                 if (inst != NULL) {
                         vecPushBack(criticals, inst);
@@ -87,11 +87,11 @@ runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
 
         int existed;
         while (vecSize(criticals) > 0) {
-                struct bb_inst_t* inst_src;
+                struct bb_inst_t *inst_src;
                 inst = vecPopBack(criticals);
 
                 // mark
-                struct dict_entry_t* en = dictAddOrFind(t, inst, &existed);
+                struct dict_entry_t *en = dictAddOrFind(t, inst, &existed);
                 assert(!existed);
                 dictSetUIntVal(en, 1);
 
@@ -103,7 +103,7 @@ runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
 
                 for (int i = 0; i < vecSize(inputs); i++) {
                         int td = inputs[i];
-                        err    = bbTdMapFind(map, td, (void**)&inst_src);
+                        err    = bbTdMapFind(map, td, (void **)&inst_src);
                         if (err) return errEmitNote("failed to look up td.");
                         if (inst_src != NULL) {
                                 en = dictFind(t, inst_src);
@@ -116,9 +116,9 @@ runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
         int delete_count = 0;
         curr             = fn->inst_list.head;
         while (curr != NULL) {
-                struct dict_entry_t* en = dictFind(t, &curr->op);
+                struct dict_entry_t *en = dictFind(t, &curr->op);
                 if (en == NULL) {
-                        struct bb_inst_t* next = curr->next;
+                        struct bb_inst_t *next = curr->next;
 
                         if (debug) {
                                 sdsClear(s);

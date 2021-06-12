@@ -34,8 +34,8 @@ struct bb_dense_layer_t {
         int x;  // recorded input; used for backprop.
 };
 
-error_t bbDenseLayer(struct vm_t*, const struct bb_dense_config_t*,
-                     struct bb_layer_t**);
+error_t bbDenseLayer(struct vm_t *, const struct bb_dense_config_t *,
+                     struct bb_layer_t **);
 
 // -----------------------------------------------------------------------------
 // Softmax Crossentropy Loss Layer.
@@ -57,8 +57,8 @@ struct bb_scel_layer_t {
         int batch_size;  // recorded parameter. used for reduction mean.
 };
 
-error_t bbSCELLayer(struct vm_t*, const struct bb_scel_config_t*,
-                    struct bb_layer_t**);
+error_t bbSCELLayer(struct vm_t *, const struct bb_scel_config_t *,
+                    struct bb_layer_t **);
 
 // -----------------------------------------------------------------------------
 // Accuracy Metrics.
@@ -73,6 +73,6 @@ struct bb_auc_layer_t {
         int arg_y, arg_x, same, local_count;
 };
 
-error_t bbAUCMetric(struct vm_t*, struct bb_layer_t**);
+error_t bbAUCMetric(struct vm_t *, struct bb_layer_t **);
 
 #endif

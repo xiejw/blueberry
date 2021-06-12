@@ -10,17 +10,17 @@
         (y) = t;
 #define CLEAR(x) vecSetSize((x), 0)
 
-struct bb_seq_module_t*
+struct bb_seq_module_t *
 bbSeqModuleNew()
 {
-        struct bb_seq_module_t* m = malloc(sizeof(struct bb_seq_module_t));
+        struct bb_seq_module_t *m = malloc(sizeof(struct bb_seq_module_t));
         if (m == NULL) return NULL;
         memset(m, 0, sizeof(struct bb_seq_module_t));
         return m;
 }
 
 void
-bbSeqModuleFree(struct bb_seq_module_t* m)
+bbSeqModuleFree(struct bb_seq_module_t *m)
 {
         if (m == NULL) return;
 
@@ -37,16 +37,16 @@ bbSeqModuleFree(struct bb_seq_module_t* m)
 }
 
 error_t
-bbCompileSeqModule(const struct bb_context_t* ctx, struct bb_program_t* p,
-                   struct bb_seq_module_t* m)
+bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
+                   struct bb_seq_module_t *m)
 {
-        int x                            = m->x;
-        int y                            = m->y;
-        vec_t(struct bb_layer_t*) layers = m->layers;
-        struct bb_layer_t* loss          = m->loss;
-        struct bb_opt_t*   opt           = m->opt;
-        struct bb_layer_t* metric        = m->metric;
-        struct srng64_t*   r             = m->r;
+        int x                             = m->x;
+        int y                             = m->y;
+        vec_t(struct bb_layer_t *) layers = m->layers;
+        struct bb_layer_t *loss           = m->loss;
+        struct bb_opt_t   *opt            = m->opt;
+        struct bb_layer_t *metric         = m->metric;
+        struct srng64_t   *r              = m->r;
 
         assert(x != 0 && y != 0);
         assert(layers != NULL);
@@ -66,7 +66,7 @@ bbCompileSeqModule(const struct bb_context_t* ctx, struct bb_program_t* p,
 
         // init all layers. num_layers + 1.
         for (int i = 0; i <= num_layers; i++) {
-                struct bb_layer_t* l = i < num_layers ? layers[i] : loss;
+                struct bb_layer_t *l = i < num_layers ? layers[i] : loss;
 
                 err = l->ops.init(l, ctx, r);
                 if (err) {
@@ -115,7 +115,7 @@ bbCompileSeqModule(const struct bb_context_t* ctx, struct bb_program_t* p,
 
         int direction = BB_FORWARD;
         for (int i = 0; i < num_layers; i++) {
-                struct bb_layer_t* l = layers[i];
+                struct bb_layer_t *l = layers[i];
                 err = l->ops.jit(l, ctx, p, direction, inputs, &outputs);
                 if (err) {
                         errEmitNote("failed to jit %d-th layer", i);
@@ -136,7 +136,7 @@ bbCompileSeqModule(const struct bb_context_t* ctx, struct bb_program_t* p,
 
         CLEAR(outputs);
 
-        struct bb_layer_t* l = loss;
+        struct bb_layer_t *l = loss;
         err = l->ops.jit(l, ctx, p, direction, inputs, &outputs);
         if (err) {
                 errEmitNote("failed to jit loss");
@@ -161,7 +161,7 @@ bbCompileSeqModule(const struct bb_context_t* ctx, struct bb_program_t* p,
                 SWAP(inputs, outputs);
                 CLEAR(outputs);
 
-                struct bb_layer_t* l = layers[i];
+                struct bb_layer_t *l = layers[i];
                 err = l->ops.jit(l, ctx, p, direction, inputs, &outputs);
                 if (err) {
                         errEmitNote("failed to jit %d-th layer", i);
@@ -169,7 +169,7 @@ bbCompileSeqModule(const struct bb_context_t* ctx, struct bb_program_t* p,
                 }
         }
 
-        struct bb_fn_t* fn = bbFnNew();
+        struct bb_fn_t *fn = bbFnNew();
 
         vecExtend(fn->inputs, p->inputs);
         vecExtend(fn->inputs, p->labels);

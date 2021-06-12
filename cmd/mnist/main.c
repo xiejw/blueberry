@@ -9,7 +9,7 @@
 
 #include "../../mlvm/cmd/mnist/mnist.h"
 
-static error_t prepareData(float32_t* x_data, size_t x_size, float32_t* y_data,
+static error_t prepareData(float32_t *x_data, size_t x_size, float32_t *y_data,
                            size_t y_size);
 
 #define NE(err) _NE_IMPL(err, __FILE__, __LINE__)
@@ -30,8 +30,8 @@ static error_t prepareData(float32_t* x_data, size_t x_size, float32_t* y_data,
 #define HIDDEN_SIZE_1 256
 #define HIDDEN_SIZE_2 128
 
-static unsigned char* images   = NULL;
-static unsigned char* labels   = NULL;
+static unsigned char *images   = NULL;
+static unsigned char *labels   = NULL;
 static size_t         it_count = 0;
 
 #define PRETEND 1
@@ -42,22 +42,22 @@ static size_t         it_count = 0;
 int
 main()
 {
-        struct vm_t*            vm  = bbVmInit();
+        struct vm_t            *vm  = bbVmInit();
         struct bb_context_t     ctx = {.is_training = 1};
-        struct bb_program_t*    p   = bbProgNew();
+        struct bb_program_t    *p   = bbProgNew();
         sds_t                   s   = sdsEmpty();
-        struct bb_seq_module_t* m   = bbSeqModuleNew();
+        struct bb_seq_module_t *m   = bbSeqModuleNew();
 
         int             prog_count;
-        struct oparg_t* prog = NULL;
+        struct oparg_t *prog = NULL;
         // ---------------------------------------------------------------------
         // Compile the model.
         // ---------------------------------------------------------------------
 
         m->r = srng64New(123);
 
-        struct shape_t* sp_x = R2S(vm, BATCH_SIZE, IMAGE_SIZE);
-        struct shape_t* sp_y = R2S(vm, BATCH_SIZE, LABEL_SIZE);
+        struct shape_t *sp_x = R2S(vm, BATCH_SIZE, IMAGE_SIZE);
+        struct shape_t *sp_y = R2S(vm, BATCH_SIZE, LABEL_SIZE);
 
         m->x = vmTensorNew(vm, F32, sp_x);
         m->y = vmTensorNew(vm, F32, sp_y);
@@ -126,8 +126,8 @@ main()
         // ---------------------------------------------------------------------
         float32_t *x_data, *y_data;
         {
-                NE(vmTensorData(vm, m->x, (void**)&x_data));
-                NE(vmTensorData(vm, m->y, (void**)&y_data));
+                NE(vmTensorData(vm, m->x, (void **)&x_data));
+                NE(vmTensorData(vm, m->y, (void **)&y_data));
         }
 
         // ---------------------------------------------------------------------
@@ -168,7 +168,7 @@ cleanup:
 }
 
 static error_t
-prepareMnistData(float32_t* x_data, size_t x_size, float32_t* y_data,
+prepareMnistData(float32_t *x_data, size_t x_size, float32_t *y_data,
                  size_t y_size)
 {
         if (images == NULL) {
@@ -190,7 +190,7 @@ prepareMnistData(float32_t* x_data, size_t x_size, float32_t* y_data,
         size_t bs = x_size / 28 / 28;
         assert(bs * LABEL_SIZE == y_size);
 
-        unsigned char* buf = images + it_count * IMAGE_SIZE;
+        unsigned char *buf = images + it_count * IMAGE_SIZE;
         for (size_t i = 0; i < x_size; i++) {
                 x_data[i] = ((float32_t)buf[i]) / 256;
         }
@@ -210,7 +210,7 @@ prepareMnistData(float32_t* x_data, size_t x_size, float32_t* y_data,
 }
 
 error_t
-prepareData(float32_t* x_data, size_t x_size, float32_t* y_data, size_t y_size)
+prepareData(float32_t *x_data, size_t x_size, float32_t *y_data, size_t y_size)
 {
         error_t err;
         if ((err = prepareMnistData(x_data, x_size, y_data, y_size))) {

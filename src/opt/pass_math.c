@@ -33,7 +33,7 @@
 // };
 
 error_t
-runMathPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
+runMathPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
 {
         sds_t s = sdsEmpty();
         if (debug) {
