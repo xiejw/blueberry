@@ -5,6 +5,7 @@
 // eva
 #include "adt/dict.h"
 
+// bb/opt
 #include "td_map.h"
 
 // -----------------------------------------------------------------------------
@@ -32,6 +33,18 @@ struct dict_ty_t ty = {
     .valFree = NULL,
 };
 
+// Run DCE Pass on the fn.
+//
+// The algorithm is simple:
+//
+// 1. Check SSA compliant.
+// 2. criticals = []
+// 3. Push all instructions, which generates outputs, into criticals.
+// 4. while criticals is not empty:
+//       pop inst from criticals.
+//       mark inst
+//       push instructions, not marked, generating operands into criticals
+// 5. remove all instructions, which are not marked.
 error_t
 runDCEPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
 {
@@ -85,22 +98,23 @@ runDCEPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
                 }
         }
 
+        // recursively push instructions into criticals.
         int existed;
         while (vecSize(criticals) > 0) {
-                struct bb_inst_t *inst_src;
                 inst = vecPopBack(criticals);
+                assert(inst != NULL);
 
-                // mark
+                // mark current instruction so it will not be eliminated.
                 struct dict_entry_t *en = dictAddOrFind(t, inst, &existed);
                 assert(!existed);
                 dictSetUIntVal(en, 1);
 
-                // put the instruction, which generates the input, into
+                // put all instructions, which generates inputs, into
                 // criticals if not marked yet.
-                assert(inst != NULL);
                 vecSetSize(inputs, 0);  // clear
                 bbInstInputs(inst, &inputs);
 
+                struct bb_inst_t *inst_src;
                 for (int i = 0; i < vecSize(inputs); i++) {
                         int td = inputs[i];
                         err    = bbTdMapFind(map, td, (void **)&inst_src);
@@ -113,6 +127,7 @@ runDCEPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
                 }
         }
 
+        // delete all instructions, which are not marked..
         int delete_count = 0;
         curr             = fn->inst_list.head;
         while (curr != NULL) {
