@@ -160,6 +160,10 @@ bbInstListDelete(struct bb_inst_list_t *list, struct bb_inst_t *inst)
                 assert(inst->next == NULL);
                 inst->prev->next = NULL;
                 list->tail       = inst->prev;
+        } else if (list->head == inst) {
+                assert(inst->prev == NULL);
+                inst->next->prev = NULL;
+                list->head       = inst->next;
         } else {
                 // general case.
                 inst->prev->next = inst->next;

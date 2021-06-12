@@ -2,6 +2,10 @@
 
 #include "opt/fn.h"
 
+#define APPEND(opcode, z, x, y) \
+        bbFnAppend(             \
+            fn, &(struct oparg_t){.op = opcode, .dst = z, .t1 = x, .t2 = y});
+
 int
 main()
 {
@@ -13,14 +17,13 @@ main()
         vecPushBack(fn->inputs, 1);
         vecPushBack(fn->inputs, 2);
 
-        vecPushBack(fn->outputs, 3);
+        vecPushBack(fn->outputs, 7);
 
-        bbFnAppend(fn,
-                   &(struct oparg_t){.op = OP_ADD, .dst = 3, .t1 = 1, .t2 = 2});
-        bbFnAppend(fn,
-                   &(struct oparg_t){.op = OP_ADD, .dst = 4, .t1 = 1, .t2 = 2});
-        bbFnAppend(fn,
-                   &(struct oparg_t){.op = OP_ADD, .dst = 5, .t1 = 4, .t2 = 2});
+        APPEND(OP_ADD, 3, 1, 2);
+        APPEND(OP_MUL, 6, 1, 1);
+        APPEND(OP_MUL, 7, 6, 1);
+        APPEND(OP_ADD, 4, 1, 2);
+        APPEND(OP_ADD, 5, 1, 2);
 
         bbFnDump(fn, &s);
         printf("%s", s);
