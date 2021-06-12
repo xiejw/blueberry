@@ -1,5 +1,24 @@
 #include "opt/fn.h"
 
+// Op
+
+void
+bbInstInputs(struct bb_inst_t* inst, vec_t(int) * inputs)
+{
+        if (inst->op.t1 >= 0) vecPushBack(*inputs, inst->op.t1);
+        if (inst->op.t2 >= 0) vecPushBack(*inputs, inst->op.t2);
+}
+
+void
+bbInstOutputs(struct bb_inst_t* inst, vec_t(int) * outputs)
+{
+        vecPushBack(*outputs, inst->op.dst);
+        if (inst->op.op == OP_LS_SCEL && inst->op.has_opt &&
+            inst->op.opt.mode & OPT_MODE_I_BIT) {
+                vecPushBack(*outputs, inst->op.opt.i);
+        }
+}
+
 // -----------------------------------------------------------------------------
 // Fn.
 // -----------------------------------------------------------------------------

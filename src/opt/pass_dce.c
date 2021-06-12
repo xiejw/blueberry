@@ -50,24 +50,26 @@ runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
         struct bb_inst_t* inst;
         dict_t*           t = dictNew(&ty, NULL);
 
+        vec_t(int) inputs  = vecNew();
+        vec_t(int) outputs = vecNew();
+
         // record map from td to inst.
         while (curr != NULL) {
-                err = bbTdMapFind(map, curr->op.dst, (void**)&inst);
-                if (err) return errEmitNote("failed to look up td.");
-                if (inst != NULL)
-                        return errNew("do not support in-place update.");
+                vecSetSize(outputs, 0);  // clear
+                bbInstOutputs(curr, &outputs);
+                for (int i = 0; i < vecSize(outputs); i++) {
+                        int td = outputs[i];
+                        err    = bbTdMapFind(map, td, (void**)&inst);
+                        if (err) return errEmitNote("failed to look up td.");
+                        if (inst != NULL)
+                                return errNew(
+                                    "do not support in-place update.");
 
-                if (bbTdMapSet(map, curr->op.dst, &curr->op)) {
-                        return errEmitNote("failed to insert td.");
-                }
-
-                // special case for LS_SCEL.
-                if (curr->op.op == OP_LS_SCEL && curr->op.has_opt &&
-                    curr->op.opt.mode & OPT_MODE_I_BIT) {
-                        if (bbTdMapSet(map, curr->op.opt.i, &curr->op)) {
+                        if (bbTdMapSet(map, td, &curr->op)) {
                                 return errEmitNote("failed to insert td.");
                         }
                 }
+
                 curr = curr->next;
         }
 
@@ -87,15 +89,21 @@ runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
         while (vecSize(criticals) > 0) {
                 struct bb_inst_t* inst_src;
                 inst = vecPopBack(criticals);
+
                 // mark
                 struct dict_entry_t* en = dictAddOrFind(t, inst, &existed);
                 assert(!existed);
                 dictSetUIntVal(en, 1);
 
-                // put the instruction into criticals if not marked yet.
+                // put the instruction, which generates the input, into
+                // criticals if not marked yet.
                 assert(inst != NULL);
-                if (inst->op.t1 >= 0) {
-                        err = bbTdMapFind(map, inst->op.t1, (void**)&inst_src);
+                vecSetSize(inputs, 0); // clear
+                bbInstInputs(inst, &inputs);
+
+                for (int i = 0; i < vecSize(inputs); i++) {
+                        int td = inputs[i];
+                        err = bbTdMapFind(map, td, (void**)&inst_src);
                         if (err) return errEmitNote("failed to look up td.");
                         if (inst_src != NULL) {
                                 en = dictFind(t, inst_src);
@@ -104,28 +112,7 @@ runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
                         }
                 }
 
-                // put the instruction into criticals if not marked yet.
-                if (inst->op.t2 >= 0) {
-                        err = bbTdMapFind(map, inst->op.t2, (void**)&inst_src);
-                        if (err) return errEmitNote("failed to look up td.");
-                        if (inst_src != NULL) {
-                                en = dictFind(t, inst_src);
-                                if (en == NULL)
-                                        vecPushBack(criticals, inst_src);
-                        }
-                }
 
-                if (inst->op.op == OP_LS_SCEL && inst->op.has_opt &&
-                    inst->op.opt.mode & OPT_MODE_I_BIT) {
-                        err =
-                            bbTdMapFind(map, inst->op.opt.i, (void**)&inst_src);
-                        if (err) return errEmitNote("failed to look up td.");
-                        if (inst_src != NULL) {
-                                en = dictFind(t, inst_src);
-                                if (en == NULL)
-                                        vecPushBack(criticals, inst_src);
-                        }
-                }
         }
 
         int delete_count = 0;
@@ -158,6 +145,8 @@ runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
         }
 
         dictFree(t);
+        vecFree(inputs);
+        vecFree(outputs);
         vecFree(criticals);
         bbTdMapFree(map);
         *changed = delete_count > 0;
