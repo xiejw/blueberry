@@ -18,10 +18,6 @@ void            bbFnFree(struct bb_fn_t*);
 void            bbFnAppend(struct bb_fn_t*, struct oparg_t* op);
 void            bbFnDump(struct bb_fn_t*, _mut_ sds_t* s);
 
-// helpers
-void bbInstInputs(struct bb_inst_t*, _mut_ vec_t(int) *);
-void bbInstOutputs(struct bb_inst_t*, _mut_ vec_t(int) *);
-
 // pass_dce.c
 error_t runDCEPass(struct bb_fn_t* fn, void* cfg, int debug,
                    _out_ int* changed);

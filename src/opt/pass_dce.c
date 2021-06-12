@@ -98,12 +98,12 @@ runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
                 // put the instruction, which generates the input, into
                 // criticals if not marked yet.
                 assert(inst != NULL);
-                vecSetSize(inputs, 0); // clear
+                vecSetSize(inputs, 0);  // clear
                 bbInstInputs(inst, &inputs);
 
                 for (int i = 0; i < vecSize(inputs); i++) {
                         int td = inputs[i];
-                        err = bbTdMapFind(map, td, (void**)&inst_src);
+                        err    = bbTdMapFind(map, td, (void**)&inst_src);
                         if (err) return errEmitNote("failed to look up td.");
                         if (inst_src != NULL) {
                                 en = dictFind(t, inst_src);
@@ -111,8 +111,6 @@ runDCEPass(struct bb_fn_t* fn, void* cfg, int debug, int* changed)
                                         vecPushBack(criticals, inst_src);
                         }
                 }
-
-
         }
 
         int delete_count = 0;

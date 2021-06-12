@@ -22,6 +22,10 @@ bbOpDump(sds_t* s, struct opopt_t* opt)
         sdsCatPrintf(s, "}");
 }
 
+// -----------------------------------------------------------------------------
+// Impl for Inst.
+// -----------------------------------------------------------------------------
+
 void
 bbInstDump(struct bb_inst_t* inst, sds_t* s)
 {
@@ -68,15 +72,32 @@ bbInstDump(struct bb_inst_t* inst, sds_t* s)
         }
         struct oparg_t* op = &inst->op;
         sdsCatPrintf(s,
-                     "  {.op = %2d (%-10s), .dst = %3d, .t1 = "
+                     "{.op = %2d (%-10s), .dst = %3d, .t1 = "
                      "%3d, .t2 = %3d",
                      op->op, opname, op->dst, op->t1, op->t2);
         if (!op->has_opt) {
-                sdsCatPrintf(s, "}\n");
+                sdsCatPrintf(s, "}");
         } else {
                 sdsCatPrintf(s, ", ");
                 bbOpDump(s, &op->opt);
-                sdsCatPrintf(s, "}\n");
+                sdsCatPrintf(s, "}");
+        }
+}
+
+void
+bbInstInputs(struct bb_inst_t* inst, vec_t(int) * inputs)
+{
+        if (inst->op.t1 >= 0) vecPushBack(*inputs, inst->op.t1);
+        if (inst->op.t2 >= 0) vecPushBack(*inputs, inst->op.t2);
+}
+
+void
+bbInstOutputs(struct bb_inst_t* inst, vec_t(int) * outputs)
+{
+        vecPushBack(*outputs, inst->op.dst);
+        if (inst->op.op == OP_LS_SCEL && inst->op.has_opt &&
+            inst->op.opt.mode & OPT_MODE_I_BIT) {
+                vecPushBack(*outputs, inst->op.opt.i);
         }
 }
 
@@ -161,7 +182,9 @@ bbInstListDump(struct bb_inst_list_t* list, sds_t* s)
         struct bb_inst_t* curr;
         curr = list->head;
         while (curr != NULL) {
+                sdsCatPrintf(s, "  ");
                 bbInstDump(curr, s);
+                sdsCatPrintf(s, "\n");
                 curr = curr->next;
         }
         sdsCatPrintf(s, "}\n");

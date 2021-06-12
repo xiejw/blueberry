@@ -19,6 +19,8 @@ main()
                    &(struct oparg_t){.op = OP_ADD, .dst = 3, .t1 = 1, .t2 = 2});
         bbFnAppend(fn,
                    &(struct oparg_t){.op = OP_ADD, .dst = 4, .t1 = 1, .t2 = 2});
+        bbFnAppend(fn,
+                   &(struct oparg_t){.op = OP_ADD, .dst = 5, .t1 = 4, .t2 = 2});
 
         bbFnDump(fn, &s);
         printf("%s", s);

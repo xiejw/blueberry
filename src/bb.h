@@ -23,6 +23,8 @@ struct bb_inst_t {
 };
 
 void bbInstDump(struct bb_inst_t* inst, sds_t* s);
+void bbInstInputs(struct bb_inst_t*, _mut_ vec_t(int) *);
+void bbInstOutputs(struct bb_inst_t*, _mut_ vec_t(int) *);
 
 struct bb_inst_list_t {
         int               count;
