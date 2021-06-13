@@ -195,6 +195,9 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
         if (runDCEPass(fn, NULL, debug, &changed)) {
                 errFatalAndExit1("something wrong.");
         }
+        if (runMathPass(fn, NULL, debug, &changed)) {
+                errFatalAndExit1("something wrong.");
+        }
 
         SWAP_INST_LIST();
         bbFnFree(fn);

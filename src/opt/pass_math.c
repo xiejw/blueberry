@@ -114,35 +114,55 @@ runMathPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
                                 goto cleanup;
                         }
                         if (info == NULL) {
-                                continue;  // must be fn input.
+                                continue;  // must be fn input or global consts.
                         }
                         info->uses++;
                 }
 
                 if (curr->op.op == OP_MUL && curr->op.t2 == 1) {
                         vecPushBack(candidates, curr);
-                        if (debug) {
-                                sdsClear(s);
-                                sdsCatPrintf(&s, "Candidate: ");
-                                bbInstDump(curr, &s);
-                                sdsCatPrintf(&s, "\n");
-                                printf("%s\n", s);
-                        }
                 }
 
                 curr = curr->next;
         }
 
+        int replaced_count = 0;
+        while (vecSize(candidates) > 0) {
+                curr = vecPopBack(candidates);
+                err  = bbTdMapFind(map, curr->op.t1, (void **)&info);
+                if (err) {
+                        err = errEmitNote("failed to look up td.");
+                        goto cleanup;
+                }
+                if (info == NULL) {
+                        continue;  // shall we do replace straightforward?
+                        // another cavediate is it doens not rewrite output.
+                }
+                if (info->uses == 1) {
+                        if (debug) {
+                                sdsClear(s);
+                                sdsCatPrintf(&s, "Candidate: ");
+                                bbInstDump(curr, &s);
+                                printf("%s\n", s);
+                        }
+                        // rewrite now.
+                        assert(info->src != NULL);
+                        info->src->op.dst = curr->op.dst;
+                        bbInstListDelete(&fn->inst_list, curr);
+                        replaced_count++;
+                }
+        }
+
         if (debug) {
                 sdsClear(s);
                 sdsCatPrintf(&s, "==================\n");
-                sdsCatPrintf(&s, "After DCE Pass.\n");
+                sdsCatPrintf(&s, "After Math Pass.\n");
                 sdsCatPrintf(&s, "==================\n");
                 bbFnDump(fn, &s);
                 printf("%s\n", s);
         }
 
-        *changed = 0;
+        *changed = replaced_count > 0;
 
 cleanup:
         vecFree(inputs);
