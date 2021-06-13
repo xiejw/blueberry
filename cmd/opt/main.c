@@ -33,6 +33,9 @@ main()
         if (runDCEPass(fn, NULL, debug, &changed)) {
                 errFatalAndExit1("something wrong.");
         }
+        if (runMathPass(fn, NULL, debug, &changed)) {
+                errFatalAndExit1("something wrong.");
+        }
 
         sdsClear(s);
         bbFnDump(fn, &s);

@@ -32,6 +32,24 @@
 //     .valFree = NULL,
 // };
 
+// Remove unnecessary math operations, e.g., x = x * 1 in fn.
+//
+// This can often come from gradient tape as the first gradient is always 1.
+// Here we take a naive approach to do very simple optimization for this case
+// only.
+//
+// The algorithm
+//
+// 1. Check SSA complicant.
+// 2. Pass 1: Record all td's generators.
+// 2. Pass 2: Record all td's uses (count).
+// 2. Pass 3: Find all candidates and replace the td if the operand's use is 1.
+struct td_info_t {
+        int               uses;  // count of uses.
+        struct bb_inst_t *src;   // src instruciton generating this td.
+        struct td_info_t *next;  // point to next info.
+};
+
 error_t
 runMathPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
 {
@@ -44,117 +62,77 @@ runMathPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
                 printf("%s\n", s);
         }
 
-        //         error_t           err;
-        //         struct td_map_t*  map  = bbTdMapNew();
-        //         struct bb_inst_t* curr = fn->inst_list.head;
-        //         struct bb_inst_t* inst;
-        //         dict_t*           t = dictNew(&ty, NULL);
-        //
-        //         // record map from td to inst.
-        //         while (curr != NULL) {
-        //                 err = bbTdMapFind(map, curr->op.dst, (void**)&inst);
-        //                 if (err) return errEmitNote("failed to look up td.");
-        //                 if (inst != NULL)
-        //                         return errNew("do not support in-place
-        //                         update.");
-        //
-        //                 if (bbTdMapSet(map, curr->op.dst, &curr->op)) {
-        //                         return errEmitNote("failed to insert td.");
-        //                 }
-        //
-        //                 // special case for LS_SCEL.
-        //                 if (curr->op.op == OP_LS_SCEL && curr->op.has_opt &&
-        //                     curr->op.opt.mode & OPT_MODE_I_BIT) {
-        //                         if (bbTdMapSet(map, curr->op.opt.i,
-        //                         &curr->op)) {
-        //                                 return errEmitNote("failed to insert
-        //                                 td.");
-        //                         }
-        //                 }
-        //                 curr = curr->next;
-        //         }
-        //
-        //         // push outputs to criticals.
-        //         vec_t(struct bb_inst_t*) criticals = vecNew();
-        //         size_t output_count                = vecSize(fn->outputs);
-        //         for (size_t i = 0; i < output_count; i++) {
-        //                 int td = fn->outputs[i];
-        //                 err    = bbTdMapFind(map, td, (void**)&inst);
-        //                 if (err) return errEmitNote("failed to look up td.");
-        //                 if (inst != NULL) {
-        //                         vecPushBack(criticals, inst);
-        //                 }
-        //         }
-        //
-        //         int existed;
-        //         while (vecSize(criticals) > 0) {
-        //                 struct bb_inst_t* inst_src;
-        //                 inst = vecPopBack(criticals);
-        //                 // mark
-        //                 struct dict_entry_t* en = dictAddOrFind(t, inst,
-        //                 &existed); assert(!existed); dictSetUIntVal(en, 1);
-        //
-        //                 // put the instruction into criticals if not marked
-        //                 yet. assert(inst != NULL); if (inst->op.t1 >= 0) {
-        //                         err = bbTdMapFind(map, inst->op.t1,
-        //                         (void**)&inst_src); if (err) return
-        //                         errEmitNote("failed to look up td."); if
-        //                         (inst_src != NULL) {
-        //                                 en = dictFind(t, inst_src);
-        //                                 if (en == NULL)
-        //                                         vecPushBack(criticals,
-        //                                         inst_src);
-        //                         }
-        //                 }
-        //
-        //                 // put the instruction into criticals if not marked
-        //                 yet. if (inst->op.t2 >= 0) {
-        //                         err = bbTdMapFind(map, inst->op.t2,
-        //                         (void**)&inst_src); if (err) return
-        //                         errEmitNote("failed to look up td."); if
-        //                         (inst_src != NULL) {
-        //                                 en = dictFind(t, inst_src);
-        //                                 if (en == NULL)
-        //                                         vecPushBack(criticals,
-        //                                         inst_src);
-        //                         }
-        //                 }
-        //
-        //                 if (inst->op.op == OP_LS_SCEL && inst->op.has_opt &&
-        //                     inst->op.opt.mode & OPT_MODE_I_BIT) {
-        //                         err =
-        //                             bbTdMapFind(map, inst->op.opt.i,
-        //                             (void**)&inst_src);
-        //                         if (err) return errEmitNote("failed to look
-        //                         up td."); if (inst_src != NULL) {
-        //                                 en = dictFind(t, inst_src);
-        //                                 if (en == NULL)
-        //                                         vecPushBack(criticals,
-        //                                         inst_src);
-        //                         }
-        //                 }
-        //         }
-        //
-        //         int delete_count = 0;
-        //         curr             = fn->inst_list.head;
-        //         while (curr != NULL) {
-        //                 struct dict_entry_t* en = dictFind(t, &curr->op);
-        //                 if (en == NULL) {
-        //                         struct bb_inst_t* next = curr->next;
-        //
-        //                         if (debug) {
-        //                                 sdsClear(s);
-        //                                 bbInstDump(curr, &s);
-        //                                 printf("--> Delete inst: %s\n", s);
-        //                         }
-        //                         delete_count++;
-        //                         bbInstListDelete(&fn->inst_list, curr);
-        //                         curr = next;
-        //                         continue;
-        //                 }
-        //                 curr = curr->next;
-        //         }
-        //
+        error_t           err  = OK;
+        struct td_map_t  *map  = bbTdMapNew();  // type is td_info_t*
+        struct bb_inst_t *curr = fn->inst_list.head;
+
+        struct td_info_t *head = NULL;
+        struct td_info_t *info;
+
+        vec_t(int) inputs                    = vecNew();
+        vec_t(int) outputs                   = vecNew();
+        vec_t(struct bb_inst_t *) candidates = vecNew();
+
+        while (curr != NULL) {
+                vecSetSize(outputs, 0);  // clear
+                bbInstOutputs(curr, &outputs);
+                int size = vecSize(outputs);
+
+                for (int i = 0; i < size; i++) {
+                        int td = outputs[i];
+                        err    = bbTdMapFind(map, td, (void **)&info);
+                        if (err) {
+                                err = errEmitNote("failed to look up td.");
+                                goto cleanup;
+                        }
+                        if (info == NULL) {
+                                // create a new one.
+                                info       = malloc(sizeof(*info));
+                                info->uses = 0;
+                                info->src  = curr;
+                                info->next = head;
+                                head       = info;
+                                if (bbTdMapSet(map, td, info)) {
+                                        err =
+                                            errEmitNote("failed to insert td.");
+                                        goto cleanup;
+                                }
+                        } else if (info->src != curr) {
+                                err = errNew("not ssa.");
+                                goto cleanup;
+                        }
+                }
+
+                vecSetSize(inputs, 0);  // clear
+                bbInstInputs(curr, &inputs);
+                size = vecSize(inputs);
+                for (int i = 0; i < size; i++) {
+                        int td = inputs[i];
+                        err    = bbTdMapFind(map, td, (void **)&info);
+                        if (err) {
+                                err = errEmitNote("failed to look up td.");
+                                goto cleanup;
+                        }
+                        if (info == NULL) {
+                                continue;  // must be fn input.
+                        }
+                        info->uses++;
+                }
+
+                if (curr->op.op == OP_MUL && curr->op.t2 == 1) {
+                        vecPushBack(candidates, curr);
+                        if (debug) {
+                                sdsClear(s);
+                                sdsCatPrintf(&s, "Candidate: ");
+                                bbInstDump(curr, &s);
+                                sdsCatPrintf(&s, "\n");
+                                printf("%s\n", s);
+                        }
+                }
+
+                curr = curr->next;
+        }
+
         if (debug) {
                 sdsClear(s);
                 sdsCatPrintf(&s, "==================\n");
@@ -165,6 +143,19 @@ runMathPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
         }
 
         *changed = 0;
+
+cleanup:
+        vecFree(inputs);
+        vecFree(outputs);
+        vecFree(candidates);
+
+        while (head != NULL) {
+                info = head->next;
+                free(head);
+                head = info;
+        }
+
+        bbTdMapFree(map);
         sdsFree(s);
-        return OK;
+        return err;
 }
