@@ -72,4 +72,7 @@ compile: ${CMD_TARGETS}
 
 $(foreach cmd,$(CMDS),$(eval $(call objs,$(cmd),$(BUILD),$(BB_LIB))))
 
+# Special mode to run mnist by checking computation only.
+mnist_not_run: ${BUILD}/mnist
+	${EX} ${BUILD}/mnist -n
 

@@ -40,16 +40,30 @@ static size_t         it_count = 0;
 // Main.
 // -----------------------------------------------------------------------------
 int
-main()
+main(int argc, char **argv)
 {
-        struct vm_t            *vm  = bbVmInit();
+        struct vm_t *           vm  = bbVmInit();
         struct bb_context_t     ctx = {.is_training = 1};
-        struct bb_program_t    *p   = bbProgNew();
+        struct bb_program_t *   p   = bbProgNew();
         sds_t                   s   = sdsEmpty();
         struct bb_seq_module_t *m   = bbSeqModuleNew();
 
         int             prog_count;
         struct oparg_t *prog = NULL;
+
+        // ---------------------------------------------------------------------
+        // Parsing the flag (the hard way).
+        // ---------------------------------------------------------------------
+        int pretend = 0;
+        if (argc != 1) {
+                if (argc > 2 || strcmp(argv[1], "-n") != 0) {
+                        fprintf(stdout,
+                                "failed to understand flags.\n\nusage: -n   "
+                                "pretend mode.");
+                        return -1;
+                }
+                pretend = 1;
+        }
         // ---------------------------------------------------------------------
         // Compile the model.
         // ---------------------------------------------------------------------
@@ -138,7 +152,7 @@ main()
         // ---------------------------------------------------------------------
         // Run.
         // ---------------------------------------------------------------------
-        if (!PRETEND) {
+        if (!pretend) {
                 for (int ep = 0; ep < 12; ep++) {
                         // for (int ep = 0; ep < 1; ep++) {
                         for (int i = 0; i < TOTOL_IMAGES / BATCH_SIZE; i++) {
