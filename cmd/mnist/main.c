@@ -42,9 +42,9 @@ static size_t         it_count = 0;
 int
 main(int argc, char **argv)
 {
-        struct vm_t *           vm  = bbVmInit();
+        struct vm_t            *vm  = bbVmInit();
         struct bb_context_t     ctx = {.is_training = 1};
-        struct bb_program_t *   p   = bbProgNew();
+        struct bb_program_t    *p   = bbProgNew();
         sds_t                   s   = sdsEmpty();
         struct bb_seq_module_t *m   = bbSeqModuleNew();
 
