@@ -1,0 +1,12 @@
+We want to design a function-based IR. It is SSA, and has no control-flow.
+In addition, its interna values are not readable. So, the outputs are important
+if the users want to pass the value out.
+
+It supports autograd and optimized. Once done, it can be materilized to real
+batch ops to run.
+
+Any function starts with its down value number, e.g., 0, 1, 2, etc. They are not
+same as the tensor descriptor used by vm. For consistency and convenience, 0 is
+sitll the scalar 0 and 1 is still the scalar 1.
+
+
