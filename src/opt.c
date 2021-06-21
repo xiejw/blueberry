@@ -18,8 +18,7 @@ static error_t _bbOptAdamPropApply(struct bb_opt_t     *opt,
 // Public APIs.
 // -----------------------------------------------------------------------------
 error_t
-bbOptNew(struct vm_t *vm, int type, float32_t lr, void *cfg,
-         struct bb_opt_t **out)
+bbOptNew(struct vm_t *vm, int type, f32_t lr, void *cfg, struct bb_opt_t **out)
 {
         struct bb_opt_t *opt = malloc(sizeof(struct bb_opt_t));
         memset(opt, 0, sizeof(struct bb_opt_t));

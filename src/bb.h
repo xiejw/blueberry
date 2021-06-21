@@ -128,7 +128,7 @@ void bbLayerFree(struct bb_layer_t *);
 // -----------------------------------------------------------------------------
 
 struct bb_opt_t {
-        float32_t    lr;
+        f32_t        lr;
         struct vm_t *vm;  // unowned.
         int          type;
         vec_t(int) weights;  // unowned.
@@ -150,7 +150,7 @@ struct bb_opt_adam_config_t {
         float epsilon;  // suggested 1e-8
 };
 
-error_t bbOptNew(struct vm_t *vm, int type, float32_t lr, void *cfg,
+error_t bbOptNew(struct vm_t *vm, int type, f32_t lr, void *cfg,
                  _out_ struct bb_opt_t **);
 error_t bbOptInit(struct bb_opt_t *, vec_t(int) weights, vec_t(int) grads);
 error_t bbOptApply(struct bb_opt_t *, struct bb_program_t *);

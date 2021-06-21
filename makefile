@@ -14,7 +14,8 @@ SRC             =  src
 CMD             =  cmd
 FMT_FOLDERS     =  ${SRC} ${CMD}  # required by eva.mk
 
-CFLAGS          += -I${SRC} -I${EVA_PATH}/src -I${MLVM_PATH}/src -g
+CFLAGS          += -I${SRC} -I${EVA_PATH}/src -g
+CFLAGS          += -DVM_SPEC -I${MLVM_PATH}/src -I${MLVM_PATH}/include
 LDFLAGS         += ${MLVM_LIB} ${EVA_LIB}
 
 # ------------------------------------------------------------------------------
