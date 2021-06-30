@@ -23,6 +23,7 @@ bbFnCtxNew()
 {
         struct bb_fn_ctx_t *p = malloc(sizeof(*p));
         p->cfg                = NULL;
+        p->debug_mode         = 0;
         p->fns                = dictNew(&ty_fn, NULL);
         return p;
 }
@@ -33,6 +34,12 @@ bbFnCtxFree(struct bb_fn_ctx_t *p)
         if (p == NULL) return;
         dictFree(p->fns);
         free(p);
+}
+
+error_t
+bbFnCtxAddFn(struct bb_fn_ctx_t *ctx, const char *name, struct bb_fn_t *fn)
+{
+        return OK;
 }
 
 // -----------------------------------------------------------------------------

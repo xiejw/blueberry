@@ -190,12 +190,12 @@ bbCompileSeqModule(const struct bb_context_t *ctx, struct bb_program_t *p,
 
         SWAP_INST_LIST();
 
-        int debug = 1;
-        int changed;
-        if (runDCEPass(fn, NULL, debug, &changed)) {
+        struct bb_fn_ctx_t fn_ctx = {.debug_mode = 1};
+        int                changed;
+        if (runDCEPass(fn, &fn_ctx, &changed)) {
                 errFatalAndExit1("something wrong.");
         }
-        if (runMathPass(fn, NULL, debug, &changed)) {
+        if (runMathPass(fn, &fn_ctx, &changed)) {
                 errFatalAndExit1("something wrong.");
         }
 

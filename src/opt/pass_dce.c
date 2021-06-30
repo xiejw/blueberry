@@ -55,9 +55,10 @@ static struct dict_ty_t ty_i64 = {
 //       push instructions, not marked, generating operands into criticals
 // 5. remove all instructions, which are not marked.
 error_t
-runDCEPass(struct bb_fn_t *fn, void *cfg, int debug, int *changed)
+runDCEPass(struct bb_fn_t *fn, struct bb_fn_ctx_t *ctx, int *changed)
 {
-        sds_t s = sdsEmpty();
+        int   debug = ctx->debug_mode;
+        sds_t s     = sdsEmpty();
 
         if (debug) {
                 sdsCatPrintf(&s, "==================\n");

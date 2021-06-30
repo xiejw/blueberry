@@ -28,12 +28,12 @@ main()
         bbFnDump(fn, &s);
         printf("%s", s);
 
-        int changed;
-        int debug = 1;
-        if (runDCEPass(fn, NULL, debug, &changed)) {
+        int                changed;
+        struct bb_fn_ctx_t ctx = {.debug_mode = 1};
+        if (runDCEPass(fn, &ctx, &changed)) {
                 errFatalAndExit1("something wrong.");
         }
-        if (runMathPass(fn, NULL, debug, &changed)) {
+        if (runMathPass(fn, &ctx, &changed)) {
                 errFatalAndExit1("something wrong.");
         }
 
