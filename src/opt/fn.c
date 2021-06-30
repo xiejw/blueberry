@@ -1,5 +1,40 @@
 #include "opt/fn.h"
 
+#include <stdlib.h>  // malloc
+
+// eva
+#include "adt/hashing.h"
+
+// -----------------------------------------------------------------------------
+// Ctx.
+// -----------------------------------------------------------------------------
+
+static struct dict_ty_t ty_fn = {
+    .hashFn  = hashFnStr,
+    .keyDup  = dupFnStr,
+    .valDup  = NULL,
+    .keyCmp  = keyCmpFnStr,
+    .keyFree = freeFnStr,
+    .valFree = NULL,
+};
+
+struct bb_fn_ctx_t *
+bbFnCtxNew()
+{
+        struct bb_fn_ctx_t *p = malloc(sizeof(*p));
+        p->cfg                = NULL;
+        p->fns                = dictNew(&ty_fn, NULL);
+        return p;
+}
+
+void
+bbFnCtxFree(struct bb_fn_ctx_t *p)
+{
+        if (p == NULL) return;
+        dictFree(p->fns);
+        free(p);
+}
+
 // -----------------------------------------------------------------------------
 // Fn.
 // -----------------------------------------------------------------------------

@@ -33,7 +33,7 @@ static struct dict_ty_t ty_ptr = {
     .valFree = NULL,
 };
 
-struct dict_ty_t ty_i64 = {
+static struct dict_ty_t ty_i64 = {
     .hashFn  = valueHashFnI64,
     .keyDup  = valueDupI64,
     .valDup  = NULL,

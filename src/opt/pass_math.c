@@ -11,27 +11,6 @@
 // Math Local Optimization.
 // -----------------------------------------------------------------------------
 
-// uint64_t
-// hashFn(const void* key)
-// {
-//         return (intptr_t)key;
-// }
-//
-// int
-// keyCmp(void* privdata, const void* key1, const void* key2)
-// {
-//         return key1 == key2;
-// }
-//
-// struct dict_ty_t ty = {
-//     .hashFn  = hashFn,
-//     .keyDup  = NULL,
-//     .valDup  = NULL,
-//     .keyCmp  = keyCmp,
-//     .keyFree = NULL,
-//     .valFree = NULL,
-// };
-
 // Remove unnecessary math operations, e.g., x = x * 1 in fn.
 //
 // This can often come from gradient tape as the first gradient is always 1.
