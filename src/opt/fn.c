@@ -22,9 +22,9 @@ struct bb_fn_ctx_t *
 bbFnCtxNew()
 {
         struct bb_fn_ctx_t *p = malloc(sizeof(*p));
-        p->cfg                = NULL;
         p->debug_mode         = 0;
         p->fns                = dictNew(&ty_fn, NULL);
+        p->passes             = vecNew();
         return p;
 }
 
@@ -33,12 +33,30 @@ bbFnCtxFree(struct bb_fn_ctx_t *p)
 {
         if (p == NULL) return;
         dictFree(p->fns);
+        vecFree(p->passes);
         free(p);
 }
 
 error_t
 bbFnCtxAddFn(struct bb_fn_ctx_t *ctx, const char *name, struct bb_fn_t *fn)
 {
+        // error out if name existed already.
+        return OK;
+}
+
+// NULL if missing.
+struct bb_fn_t *
+bbFnCtxLookUpFn(struct bb_fn_ctx_t *ctx, const char *name)
+{
+        return NULL;
+}
+
+error_t
+bbFnCtxRunPasses(struct bb_fn_ctx_t *ctx)
+{
+        // debug mode
+        // changed
+        // run passed in order
         return OK;
 }
 

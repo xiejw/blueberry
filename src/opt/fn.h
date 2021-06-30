@@ -3,6 +3,7 @@
 
 #include "vm.h"
 
+// eva
 #include "adt/dict.h"
 #include "adt/vec.h"
 
@@ -27,10 +28,14 @@ void            bbFnDump(struct bb_fn_t *, _mut_ sds_t *s);
 // Ctx
 // -----------------------------------------------------------------------------
 
+struct bb_fn_ctx_t;
+
+typedef error_t (*bb_fn_pass_t)(struct bb_fn_t *, struct bb_fn_ctx_t *, int *);
+
 struct bb_fn_ctx_t {
-        void   *cfg;
         int     debug_mode;
         dict_t *fns;  // key is str (owned) value is fn (unowned).
+        vec_t(bb_fn_pass_t) passes;
 };
 
 struct bb_fn_ctx_t *bbFnCtxNew();
@@ -39,8 +44,6 @@ void                bbFnCtxFree(struct bb_fn_ctx_t *);
 error_t bbFnCtxAddFn(struct bb_fn_ctx_t *, const char *name, struct bb_fn_t *);
 struct bb_fn_t *bbFnCtxLookUpFn(struct bb_fn_ctx_t *, const char *name);
 
-typedef error_t (*bb_fn_pass_t)(struct bb_fn_t *, struct bb_fn_ctx_t *, int *);
-
 error_t bbFnCtxAddFnPass(struct bb_fn_ctx_t *, bb_fn_pass_t);
 error_t bbFnCtxRunPasses();
 
@@ -48,8 +51,6 @@ error_t bbFnCtxRunPasses();
 // Passes
 // -----------------------------------------------------------------------------
 
-// pass shape inf
-error_t runShapeInf();
 // pass_dce.c
 error_t runDCEPass(struct bb_fn_t *fn, struct bb_fn_ctx_t *,
                    _mut_ int      *changed);

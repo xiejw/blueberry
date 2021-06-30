@@ -4,6 +4,7 @@
 
 // eva
 #include "adt/dict.h"
+#include "adt/hashing.h"
 
 // mlvm
 #include "vm_internal.h"  //  MLVM_MAX_TENSOR_COUNT
@@ -12,28 +13,16 @@
 // DCE.
 // -----------------------------------------------------------------------------
 
-static uint64_t
-hashFn(const void *key)
-{
-        return (intptr_t)key;
-}
-
-static int
-keyCmp(void *privdata, const void *key1, const void *key2)
-{
-        return key1 == key2;
-}
-
-static struct dict_ty_t ty_ptr = {
-    .hashFn  = hashFn,
+static struct dict_ty_t dict_ty_ptr = {
+    .hashFn  = hashFnPtr,
     .keyDup  = NULL,
     .valDup  = NULL,
-    .keyCmp  = keyCmp,
+    .keyCmp  = keyCmpFnPtr,
     .keyFree = NULL,
     .valFree = NULL,
 };
 
-static struct dict_ty_t ty_i64 = {
+static struct dict_ty_t dict_ty_i64 = {
     .hashFn  = valueHashFnI64,
     .keyDup  = valueDupI64,
     .valDup  = NULL,
@@ -68,8 +57,8 @@ runDCEPass(struct bb_fn_t *fn, struct bb_fn_ctx_t *ctx, int *changed)
                 printf("%s\n", s);
         }
 
-        dict_t *inst_mark_set  = dictNew(&ty_ptr, NULL);
-        dict_t *td_to_inst_map = dictNew(&ty_i64, NULL);
+        dict_t *inst_mark_set  = dictNew(&dict_ty_ptr, NULL);
+        dict_t *td_to_inst_map = dictNew(&dict_ty_i64, NULL);
         dictExpand(td_to_inst_map, MLVM_MAX_TENSOR_COUNT);
 
         struct dict_entry_t *entry;
