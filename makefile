@@ -23,7 +23,6 @@ LDFLAGS         += ${MLVM_LIB} ${EVA_LIB}
 # libs.
 # ------------------------------------------------------------------------------
 
-# ALL_LIBS        = ${BB_LIB}
 ALL_LIBS =
 
 
@@ -34,21 +33,6 @@ ALL_LIBS =
 .DEFAULT_GOAL   = compile
 
 compile: ${BUILD} ${ALL_LIBS}
-
-# DEP_FLAGS += -B
-#
-# ifdef RELEASE
-# DEP_FLAGS += RELEASE=1
-# endif
-#
-# ifdef BLIS
-# DEP_FLAGS += BLIS=1
-# endif
-
-compile_all:
-	${MK} -C ../eva ${DEP_FLAGS} libeva
-	${MK} -C ../mlvm ${DEP_FLAGS} libmlvm
-	${MK} ${DEP_FLAGS}
 
 # ------------------------------------------------------------------------------
 # cmds.
@@ -63,4 +47,19 @@ compile: ${CMD_TARGETS}
 
 $(foreach cmd,$(CMDS),$(eval $(call objs,$(cmd),$(BUILD),$(BB_LIB))))
 
+# ------------------------------------------------------------------------------
+# deps.
+# ------------------------------------------------------------------------------
+
+ifdef RELEASE
+DEP_FLAGS += RELEASE=1
+endif
+
+ifdef BLIS
+DEP_FLAGS += BLIS=1
+endif
+
+deps:
+	${MK} -C ../eva ${DEP_FLAGS} libeva
+	${MK} -C ../mlvm ${DEP_FLAGS} libmlvm
 
