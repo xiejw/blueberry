@@ -16,6 +16,8 @@ struct board_t {
 // helpers.
 // -----------------------------------------------------------------------------
 
+#define CTRL(c) ((c)&037)
+
 // init ncurses scr
 static void
 initScr()
@@ -102,6 +104,7 @@ main()
                 ch = getch();
 
                 switch (ch) {
+                case CTRL('c'):
                 case 'q':
                         refresh();
                         goto exit;
