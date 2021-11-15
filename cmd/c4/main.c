@@ -1,6 +1,8 @@
 #include <stdio.h>
 
-int main() {
+int
+main()
+{
         printf("Hello c4\n");
-                return 0;
+        return 0;
 }
