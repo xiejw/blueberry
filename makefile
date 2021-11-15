@@ -19,6 +19,8 @@ CFLAGS          += -I${SRC} -I${EVA_PATH}/src
 CFLAGS          += -DVM_SPEC -I${MLVM_PATH}/src -I${MLVM_PATH}/include
 LDFLAGS         += ${MLVM_LIB} ${EVA_LIB}
 
+CFLAGS += -lncurses
+
 # ------------------------------------------------------------------------------
 # libs.
 # ------------------------------------------------------------------------------
