@@ -46,9 +46,9 @@ compile: ${BUILD} ${ALL_LIBS}
 # endif
 
 compile_all:
-	make -C ../eva ${DEP_FLAGS} libeva
-	make -C ../mlvm ${DEP_FLAGS} libmlvm
-	make ${DEP_FLAGS}
+	${MK} -C ../eva ${DEP_FLAGS} libeva
+	${MK} -C ../mlvm ${DEP_FLAGS} libmlvm
+	${MK} ${DEP_FLAGS}
 
 # ------------------------------------------------------------------------------
 # cmds.
