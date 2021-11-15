@@ -13,7 +13,8 @@ include ${EVA_PATH}/eva.mk
 
 SRC             =  src
 CMD             =  cmd
-FMT_FOLDERS     =  ${SRC} ${CMD}  # required by eva.mk
+#FMT_FOLDERS     =  ${SRC} ${CMD}  # required by eva.mk
+FMT_FOLDERS     =  ${CMD}  # required by eva.mk
 
 CFLAGS          += -I${SRC} -I${EVA_PATH}/src
 CFLAGS          += -DVM_SPEC -I${MLVM_PATH}/src -I${MLVM_PATH}/include
