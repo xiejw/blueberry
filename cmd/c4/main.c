@@ -2,11 +2,19 @@
 
 #include <ncurses.h>
 
+// -----------------------------------------------------------------------------
+// data structures.
+// -----------------------------------------------------------------------------
+
 struct board_t {
         int rows;
         int cols;
         int mode;  // OR 1 (select col) 2 (select row)
 };
+
+// -----------------------------------------------------------------------------
+// helpers.
+// -----------------------------------------------------------------------------
 
 // init ncurses scr
 static void
@@ -17,6 +25,17 @@ initScr()
         keypad(stdscr, TRUE);  // get F1, F2 etc..
         noecho();              // don't echo() while we do getch
 }
+
+// finialize ncurses scr
+static void
+finalizeScr()
+{
+        endwin();
+}
+
+// -----------------------------------------------------------------------------
+// helpers.
+// -----------------------------------------------------------------------------
 
 int
 main()
@@ -30,6 +49,7 @@ main()
         struct board_t b = {.rows = 6, .cols = 7, .mode = 1};
 
         while (1) {
+                // print the board.
                 cur_row = 0;
 
                 for (int r = 0; r < b.rows; r++) {
@@ -77,9 +97,10 @@ main()
                          "stone (q to quit).\n");
                 refresh();
 
-                ch = getch(); /* If raw() hadn't been called
-                               * we have to press enter before it
-                               * gets to the program 		*/
+                // keystroke events.
+
+                ch = getch();
+
                 switch (ch) {
                 case 'q':
                         refresh();
@@ -96,14 +117,14 @@ main()
                                 pos = 0;
                         }
                         break;
-                default:
-                        refresh(); /* Print it on to the real screen */
+                default:;
                 }
         }
 
+        // exit routing.
 exit:
-        // end ncurses mode.
-        endwin();
+        finalizeScr();
+
         printf("bye!\n");
 
         return 0;
