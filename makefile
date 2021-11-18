@@ -53,6 +53,7 @@ $(foreach cmd,$(CMDS),$(eval $(call objs,$(cmd),$(BUILD),$(BB_LIB))))
 # ------------------------------------------------------------------------------
 # deps.
 # ------------------------------------------------------------------------------
+DEP_FLAGS = -B -j
 
 ifdef RELEASE
 DEP_FLAGS += RELEASE=1
@@ -62,7 +63,12 @@ ifdef BLIS
 DEP_FLAGS += BLIS=1
 endif
 
+ifdef RELEASE
 deps:
 	${MK} -C ../eva ${DEP_FLAGS} libeva
 	${MK} -C ../mlvm ${DEP_FLAGS} libmlvm
+else
+deps:
+	@echo "[g]make deps must be in RELEASE mode."
+endif
 
