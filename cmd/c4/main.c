@@ -42,40 +42,50 @@ finalizeScr()
 int
 main()
 {
-        int ch;
-        int pos = 3;  // current position.
-        int cur_row;
+        // a standard 6x7 board for connect 4.
+        struct board_t b = {.rows = 6, .cols = 7, .mode = 1};
+
+        const int row_margin = 5;   // top margin for board.
+        const int col_margin = 15;  // left margin for board.
+        int       pos        = 3;   // current placement position (as column).
+
+        int ch;  // input for getch().
 
         initScr();
 
-        struct board_t b = {.rows = 6, .cols = 7, .mode = 1};
-
         while (1) {
-                // print the board.
-                cur_row = 0;
+                int cur_row = 0;
 
+                // print instructions.
+                mvprintw(cur_row++, 0,
+                         "Use <- or -> to select column and space to place new "
+                         "stone (q to quit).\n");
+                // have some blank lines.
+                cur_row += row_margin;
+
+                // print the board.
                 for (int r = 0; r < b.rows; r++) {
-                        if (cur_row == 0) {
+                        if (r == 0) {
                                 // print the header
-                                mvprintw(cur_row, 0, "+");
+                                mvprintw(cur_row, col_margin, "+");
                                 for (int c = 0; c < b.cols; c++) {
                                         printw("---+");
                                 }
                                 cur_row++;
                         }
 
-                        mvprintw(cur_row++, 0, "|");
+                        mvprintw(cur_row++, col_margin, "|");
                         for (int c = 0; c < b.cols; c++) {
                                 printw("   |");
                         }
-                        mvprintw(cur_row++, 0, "+");
+                        mvprintw(cur_row++, col_margin, "+");
                         for (int c = 0; c < b.cols; c++) {
                                 printw("---+");
                         }
                 }
 
                 // plot cursor point.
-                mvprintw(cur_row++, 0, " ");
+                mvprintw(cur_row++, col_margin, " ");
                 for (int c = 0; c < b.cols; c++) {
                         if (c == pos) {
                                 printw(" ^  ");
@@ -83,7 +93,7 @@ main()
                                 printw("    ");
                         }
                 }
-                mvprintw(cur_row++, 0, " ");
+                mvprintw(cur_row++, col_margin, " ");
                 for (int c = 0; c < b.cols; c++) {
                         if (c == pos) {
                                 printw(" |  ");
@@ -91,12 +101,6 @@ main()
                                 printw("    ");
                         }
                 }
-
-                cur_row++;  // have a blank line.
-
-                mvprintw(cur_row++, 0,
-                         "Use <- or -> to select column and space to place new "
-                         "stone (q to quit).\n");
                 refresh();
 
                 // keystroke events.
