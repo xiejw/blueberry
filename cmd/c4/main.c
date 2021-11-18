@@ -1,16 +1,66 @@
+#include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <ncurses.h>
+#undef OK  // conflict with eva, same value.
+
+// eva
+#include <base/error.h>
 
 // -----------------------------------------------------------------------------
 // data structures.
 // -----------------------------------------------------------------------------
 
 struct board_t {
+        // public
         int rows;
         int cols;
         int mode;  // OR 1 (select col) 2 (select row)
+
+        // internal
+        int states[];
 };
+
+struct board_t *
+boardNew(int rows, int cols, int mode)
+{
+        size_t c = rows * cols;
+        assert(c > 0);
+
+        struct board_t *p =
+            calloc(1, sizeof(struct board_t *) + c * sizeof(int));
+        p->rows = rows;
+        p->cols = cols;
+        p->mode = mode;
+
+        return NULL;
+}
+
+void
+boardFree(struct board_t *p)
+{
+        free(p);
+}
+
+// Put a new value into the board.
+//
+// Default value is 0 in states. Flag controls overwrite behavior.
+error_t
+boardSet(struct board_t *p, int row, int col, int v, int flag)
+{
+        // TODO fill
+        return OK;
+}
+
+// Get a new value from board and fill into `v`.
+error_t
+boardGet(struct board_t *p, int row, int col, int* v)
+{
+        size_t offset = row * p->cols + col;
+        *v =  p->states[offset];
+        return OK;
+}
 
 // -----------------------------------------------------------------------------
 // helpers.
