@@ -88,6 +88,7 @@ initScr()
         raw();                 // line buffering disabled
         keypad(stdscr, TRUE);  // get F1, F2 etc..
         noecho();              // don't echo() while we do getch
+        curs_set(0);           // sets the cursor state to invisible
 }
 
 // finialize ncurses scr
