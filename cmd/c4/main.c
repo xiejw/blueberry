@@ -12,11 +12,18 @@
 // data structures.
 // -----------------------------------------------------------------------------
 
+enum player_t {
+        PLAYER_NA    = 0,    // use zero value.
+        PLAYER_BLACK = 1,    // black stone/player.
+        PLAYER_WHITE = -1,   // white stone/player.
+        PLAYER_TIE   = 999,  // only used to decide winner.
+};
+
 struct board_t {
         // public
         int rows;
         int cols;
-        int mode;  // OR 1 (select col) 2 (select row)
+        int mode;  // ORed value of 1 (select col) 2 (select row)
 
         // internal
         int states[];
@@ -108,10 +115,10 @@ main()
         // a standard 6x7 board for connect 4.
         struct board_t *b = boardNew(6, 7, 1);
 
-        const int row_margin = 5;   // top margin for board.
-        const int col_margin = 15;  // left margin for board.
-        int       pos        = 3;   // current placement position (as column).
-        int       color      = 1;   // color for next stone.
+        const int     row_margin = 5;   // top margin for board.
+        const int     col_margin = 15;  // left margin for board.
+        int           pos   = 3;  // current placement position (as column).
+        enum player_t color = PLAYER_BLACK;  // color for next stone.
 
         error_t err;
         int     ch;  // input for getch().
@@ -202,11 +209,12 @@ main()
                         }
                         break;
                 case ' ':
-                        err = boardSet(b, -1, pos, /*v=*/color, 0);
+                        err = boardSet(b, -1, pos, color, 0);
                         if (OK != err) {
                                 goto exit;
                         }
-                        color = color * -1;
+                        color =
+                            color == PLAYER_BLACK ? PLAYER_WHITE : PLAYER_BLACK;
                         break;
                 default:;
                 }
