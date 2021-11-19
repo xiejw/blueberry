@@ -4,7 +4,8 @@ EVA_LIB         = ${EVA_PATH}/.build_release/libeva.a
 MLVM_PATH       = ../mlvm
 MLVM_LIB        = ${MLVM_PATH}/.build_release/libmlvm.a
 
-# eva.mk offers ${BUILD}, fmt (action), objs fn.
+# The template eva.mk offers BUILD (build dir var), MK (action var for different
+# platforms), fmt (action), objs (make fn), etc.
 include ${EVA_PATH}/eva.mk
 
 # ------------------------------------------------------------------------------
@@ -14,20 +15,22 @@ include ${EVA_PATH}/eva.mk
 SRC             =  src
 CMD             =  cmd
 #FMT_FOLDERS     =  ${SRC} ${CMD}  # required by eva.mk
+
+# remove the line above once the code is structured.
+# right now, we don't need it in prototyping stage.
 FMT_FOLDERS     =  ${CMD}  # required by eva.mk
 
 CFLAGS          += -I${SRC} -I${EVA_PATH}/src
 CFLAGS          += -DVM_SPEC -I${MLVM_PATH}/src -I${MLVM_PATH}/include
 LDFLAGS         += ${MLVM_LIB} ${EVA_LIB}
 
-CFLAGS += -lncurses
+CFLAGS          += -lncurses
 
 # ------------------------------------------------------------------------------
 # libs.
 # ------------------------------------------------------------------------------
 
 ALL_LIBS =
-
 
 # ------------------------------------------------------------------------------
 # actions.
@@ -41,26 +44,28 @@ compile: ${BUILD} ${ALL_LIBS}
 # cmds.
 # ------------------------------------------------------------------------------
 
-# Put `test` out from CMDS, as it needs special testing library in next section.
+# filter `test` out from CMDS, as it needs special testing library.
 CMD_CANDIDATES  = $(patsubst ${CMD}/%,%,$(wildcard ${CMD}/*))
 CMDS            = $(filter-out test,${CMD_CANDIDATES})
 CMD_TARGETS     = $(patsubst ${CMD}/%/main.c,${BUILD}/%,$(wildcard ${CMD}/*/main.c))
 
 compile: ${CMD_TARGETS}
 
-$(foreach cmd,$(CMDS),$(eval $(call objs,$(cmd),$(BUILD),$(BB_LIB))))
+$(foreach cmd,$(CMDS),$(eval $(call objs,$(cmd),$(BUILD),$(ALL_LIBS))))
 
 # ------------------------------------------------------------------------------
 # deps.
 # ------------------------------------------------------------------------------
-DEP_FLAGS = -B -j
+
+# start with a fresh build (-B).
+DEP_FLAGS      += -B -j
 
 ifdef RELEASE
-DEP_FLAGS += RELEASE=1
+DEP_FLAGS      += RELEASE=1
 endif
 
 ifdef BLIS
-DEP_FLAGS += BLIS=1
+DEP_FLAGS      += BLIS=1
 endif
 
 ifdef RELEASE
