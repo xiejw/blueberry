@@ -110,6 +110,7 @@ main()
         const int row_margin = 5;   // top margin for board.
         const int col_margin = 15;  // left margin for board.
         int       pos        = 3;   // current placement position (as column).
+        int       color      = 1;   // color for next stone.
 
         error_t err;
         int     ch;  // input for getch().
@@ -147,9 +148,10 @@ main()
 
                                 if (v == 0) {
                                         printw("   |");
-                                } else {
-                                        // TODO fill the right color.
+                                } else if (v > 0) {
                                         printw(" x |");
+                                } else {
+                                        printw(" o |");
                                 }
                         }
                         mvprintw(cur_row++, col_margin, "+");
@@ -199,10 +201,11 @@ main()
                         }
                         break;
                 case ' ':
-                        err = boardSet(b, -1, pos, /*v=*/1, 0);
+                        err = boardSet(b, -1, pos, /*v=*/color, 0);
                         if (OK != err) {
                                 goto exit;
                         }
+                        color = color * -1;
                         break;
                 default:;
                 }
