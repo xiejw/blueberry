@@ -130,6 +130,12 @@ boardWinner(struct board_t *b)
 }
 
 // -----------------------------------------------------------------------------
+// colors
+// -----------------------------------------------------------------------------
+
+#define COLOR_WINNER 1
+
+// -----------------------------------------------------------------------------
 // helpers.
 // -----------------------------------------------------------------------------
 
@@ -145,7 +151,7 @@ initScr()
         noecho();              // don't echo() while we do getch
         curs_set(0);           // sets the cursor state to invisible
         start_color();
-        init_pair(1, COLOR_BLACK, COLOR_GREEN);
+        init_pair(COLOR_WINNER, COLOR_BLACK, COLOR_GREEN);
 }
 
 // finialize ncurses scr
@@ -165,11 +171,11 @@ main()
         // a standard 6x7 board for connect 4.
         struct board_t *b = boardNew(6, 7, 4, 1);
 
-        const int     row_margin = 5;   // top margin for board.
-        const int     col_margin = 15;  // left margin for board.
-        int           pos    = 3;  // current placement position (as column).
-        enum player_t color  = PLAYER_BLACK;  // color for next stone.
-        int           winner = PLAYER_NA;
+        const int     row_margin = 5;             // top margin for board.
+        const int     col_margin = 15;            // left margin for board.
+        int           pos        = 3;             // current placement column.
+        enum player_t color      = PLAYER_BLACK;  // color for next stone.
+        int           winner     = PLAYER_NA;
 
         error_t err;
         int     ch;  // input for getch().
@@ -186,9 +192,15 @@ main()
                          "stone (q to quit).");
 
                 if (winner != PLAYER_NA) {
-                        attron(COLOR_PAIR(1));
-                        mvprintw(cur_row++, 0, " winner is: %d", winner);
-                        attroff(COLOR_PAIR(1));
+                        // as here will be sufficient margin to plot board. we
+                        // will not increase cur_row here.
+                        assert(row_margin > 0);
+
+                        attron(COLOR_PAIR(COLOR_WINNER));
+                        mvprintw(cur_row, 0,
+                                 " winner is: %d. press any key to quit",
+                                 winner);
+                        attroff(COLOR_PAIR(COLOR_WINNER));
                 }
 
                 // have some blank lines.
