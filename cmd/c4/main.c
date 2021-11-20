@@ -51,27 +51,33 @@ boardFree(struct board_t *p)
         free(p);
 }
 
+// find the row to put the col or -1 if the col is full.
+static int
+boardRowForCol(struct board_t *b, int col)
+{
+        // find the first bottom row which is not filled yet.
+        const int num_col = b->cols;
+        for (int r = b->rows - 1; r >= 0; r--) {
+                size_t offset = r * num_col + col;
+                if (b->states[offset] == PLAYER_NA) {
+                        return r;
+                }
+        }
+        return -1;
+}
+
 // put a new value into the board.
 //
 // Default value is 0 in states. Flag controls overwrite behavior.
 error_t
-boardSet(struct board_t *p, int row, int col, int v, int flag)
+boardSet(struct board_t *b, int row, int col, int v, int flag)
 {
         // unsupported yet.
-        assert(row == -1);
         assert(flag == 0);
 
-        // find the first bottom row which is not filled yet.
-        const int num_col = p->cols;
-        for (int r = p->rows - 1; r >= 0; r--) {
-                size_t offset = r * num_col + col;
-                if (p->states[offset] == 0) {
-                        // drop and return
-                        p->states[offset] = v;
-                        return OK;
-                }
-        }
-        return errNew("the col: %d is full.", col);
+        size_t offset     = row * b->cols + col;
+        b->states[offset] = v;
+        return OK;
 }
 
 // get a new value from board and fill into `v`.
@@ -210,6 +216,13 @@ boardWinner(struct board_t *b)
 // -----------------------------------------------------------------------------
 
 #define COLOR_WINNER 1
+#define COLOR_ERROR  2
+
+// -----------------------------------------------------------------------------
+// error messages
+// -----------------------------------------------------------------------------
+
+#define ERR_MSG_COL_FULL "col is full, try again."
 
 // -----------------------------------------------------------------------------
 // helpers.
@@ -226,8 +239,10 @@ initScr()
         keypad(stdscr, TRUE);  // get F1, F2 etc..
         noecho();              // don't echo() while we do getch
         curs_set(0);           // sets the cursor state to invisible
+
         start_color();
         init_pair(COLOR_WINNER, COLOR_BLACK, COLOR_GREEN);
+        init_pair(COLOR_ERROR, COLOR_BLACK, COLOR_RED);
 }
 
 // finialize ncurses scr
@@ -238,7 +253,7 @@ finalizeScr()
 }
 
 // -----------------------------------------------------------------------------
-// helpers.
+// main.
 // -----------------------------------------------------------------------------
 
 int
@@ -247,14 +262,19 @@ main()
         // a standard 6x7 board for connect 4.
         struct board_t *b = boardNew(6, 7, 4, 1);
 
-        const int     row_margin = 5;             // top margin for board.
-        const int     col_margin = 15;            // left margin for board.
-        int           pos        = 3;             // current placement column.
-        enum player_t color      = PLAYER_BLACK;  // color for next stone.
-        int           winner     = PLAYER_NA;
+        const int row_margin = 5;   // top margin for board.
+        const int col_margin = 15;  // left margin for board.
 
+        // non-local vars. used across moves.
+        int           pos     = 3;             // current placement column.
+        enum player_t color   = PLAYER_BLACK;  // color for next stone.
+        int           winner  = PLAYER_NA;
+        char         *err_msg = NULL;
+
+        // local vars. used in small context.
         error_t err;
-        int     ch;  // input for getch().
+        int     ch;   // input for getch().
+        int     row;  // track the current row to put, deduced by pos.
 
         initScr();
 
@@ -269,16 +289,30 @@ main()
                          "Use <- or -> to select column and space to place new "
                          "stone (q to quit).");
 
-                if (winner != PLAYER_NA) {
-                        // as here will be sufficient margin to plot board. we
-                        // will not increase cur_row here.
-                        assert(row_margin > 0);
+                // for all msgs.
+                //
+                // note: it will have sufficient margin to plot board. we will
+                // not increase cur_row here.
+                {
+                        if (winner != PLAYER_NA) {
+                                assert(err_msg == NULL);
+                                assert(row_margin > 0);
 
-                        attron(COLOR_PAIR(COLOR_WINNER));
-                        mvprintw(cur_row, 0,
-                                 " winner is: %d. press any key to quit",
-                                 winner);
-                        attroff(COLOR_PAIR(COLOR_WINNER));
+                                attron(COLOR_PAIR(COLOR_WINNER));
+                                mvprintw(
+                                    cur_row, 0,
+                                    " winner is: %d. press any key to quit",
+                                    winner);
+                                attroff(COLOR_PAIR(COLOR_WINNER));
+                        }
+
+                        if (err_msg != NULL) {
+                                assert(winner == PLAYER_NA);
+                                attron(COLOR_PAIR(COLOR_ERROR));
+                                mvprintw(cur_row, 0, " error: %s", err_msg);
+                                attroff(COLOR_PAIR(COLOR_ERROR));
+                                err_msg = NULL;
+                        }
                 }
 
                 // have some blank lines.
@@ -361,7 +395,13 @@ main()
                         }
                         break;
                 case ' ':
-                        err = boardSet(b, -1, pos, color, 0);
+                        row = boardRowForCol(b, pos);
+                        if (row == -1) {
+                                // will try again.
+                                err_msg = ERR_MSG_COL_FULL;
+                                break;
+                        }
+                        err = boardSet(b, row, pos, color, 0);
                         if (OK != err) {
                                 goto exit;
                         }
