@@ -90,6 +90,7 @@ boardWinner(struct board_t *b)
         const int cols       = b->cols;
         const int num_to_win = b->num_to_win;
 
+        int num_stones = 0;
         int u, v, k;
 
         // algorithrm: we do one pass scanning. We only find the longest 4
@@ -102,6 +103,8 @@ boardWinner(struct board_t *b)
                         // error ignored as it is not possible to go wrong.
                         boardGet(b, r, c, &v);
                         if (v == PLAYER_NA) continue;
+
+                        num_stones++;
 
                         // only scan down
                         if (ON_BOARD(r - 1, c) &&
@@ -126,7 +129,7 @@ boardWinner(struct board_t *b)
 
 #undef ON_BOARD
 
-        return PLAYER_NA;
+        return num_stones == rows * cols ? PLAYER_TIE : PLAYER_NA;
 }
 
 // -----------------------------------------------------------------------------
@@ -185,6 +188,8 @@ main()
         while (1) {
                 int cur_row = 0;
                 int v;
+
+                clear();
 
                 // print instructions.
                 mvprintw(cur_row++, 0,
