@@ -23,6 +23,7 @@ struct board_t {
         // public
         int rows;
         int cols;
+        int num_to_win;
         int mode;  // ORed value of 1 (select col) 2 (select row)
 
         // internal
@@ -30,7 +31,7 @@ struct board_t {
 };
 
 struct board_t *
-boardNew(int rows, int cols, int mode)
+boardNew(int rows, int cols, int num_to_win, int mode)
 {
         size_t c = rows * cols;
         assert(c > 0);
@@ -38,6 +39,7 @@ boardNew(int rows, int cols, int mode)
         struct board_t *p = calloc(1, sizeof(struct board_t) + c * sizeof(int));
         p->rows           = rows;
         p->cols           = cols;
+        p->num_to_win     = num_to_win;
         p->mode           = mode;
 
         return p;
@@ -49,7 +51,7 @@ boardFree(struct board_t *p)
         free(p);
 }
 
-// Put a new value into the board.
+// put a new value into the board.
 //
 // Default value is 0 in states. Flag controls overwrite behavior.
 error_t
@@ -72,13 +74,59 @@ boardSet(struct board_t *p, int row, int col, int v, int flag)
         return errNew("the col: %d is full.", col);
 }
 
-// Get a new value from board and fill into `v`.
+// get a new value from board and fill into `v`.
 error_t
 boardGet(struct board_t *p, int row, int col, int *v)
 {
         size_t offset = row * p->cols + col;
         *v            = p->states[offset];
         return OK;
+}
+
+enum player_t
+boardWinner(struct board_t *b)
+{
+        const int rows       = b->rows;
+        const int cols       = b->cols;
+        const int num_to_win = b->num_to_win;
+
+        int u, v, k;
+
+        // algorithrm: we do one pass scanning. We only find the longest 4
+        // straight line for the direction we are sure it is needed.
+
+#define ON_BOARD(r, c) (((r) >= 0 && (r) < rows) && ((c) >= 0 && (c) < cols))
+
+        for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                        // error ignored as it is not possible to go wrong.
+                        boardGet(b, r, c, &v);
+                        if (v == PLAYER_NA) continue;
+
+                        // only scan down
+                        if (ON_BOARD(r - 1, c) &&
+                            (boardGet(b, r - 1, c, &u), u == v)) {
+                                // we can skip as it is examined already, when
+                                // we deal with row r-1.
+                                continue;
+                        }
+
+                        for (k = 1; k < num_to_win; k++) {
+                                if (ON_BOARD(r + k, c) &&
+                                    (boardGet(b, r + k, c, &u), u == v)) {
+                                        continue;
+                                }
+                                break;
+                        }
+                        if (k == num_to_win) {
+                                return v;
+                        }
+                }
+        }
+
+#undef ON_BOARD
+
+        return PLAYER_NA;
 }
 
 // -----------------------------------------------------------------------------
@@ -96,6 +144,8 @@ initScr()
         keypad(stdscr, TRUE);  // get F1, F2 etc..
         noecho();              // don't echo() while we do getch
         curs_set(0);           // sets the cursor state to invisible
+        start_color();
+        init_pair(1, COLOR_BLACK, COLOR_GREEN);
 }
 
 // finialize ncurses scr
@@ -113,12 +163,13 @@ int
 main()
 {
         // a standard 6x7 board for connect 4.
-        struct board_t *b = boardNew(6, 7, 1);
+        struct board_t *b = boardNew(6, 7, 4, 1);
 
         const int     row_margin = 5;   // top margin for board.
         const int     col_margin = 15;  // left margin for board.
-        int           pos   = 3;  // current placement position (as column).
-        enum player_t color = PLAYER_BLACK;  // color for next stone.
+        int           pos    = 3;  // current placement position (as column).
+        enum player_t color  = PLAYER_BLACK;  // color for next stone.
+        int           winner = PLAYER_NA;
 
         error_t err;
         int     ch;  // input for getch().
@@ -132,7 +183,14 @@ main()
                 // print instructions.
                 mvprintw(cur_row++, 0,
                          "Use <- or -> to select column and space to place new "
-                         "stone (q to quit).\n");
+                         "stone (q to quit).");
+
+                if (winner != PLAYER_NA) {
+                        attron(COLOR_PAIR(1));
+                        mvprintw(cur_row++, 0, " winner is: %d", winner);
+                        attroff(COLOR_PAIR(1));
+                }
+
                 // have some blank lines.
                 cur_row += row_margin;
 
@@ -191,6 +249,10 @@ main()
 
                 ch = getch();
 
+                if (winner != PLAYER_NA) {
+                        ch = 'q';  // quit
+                }
+
                 switch (ch) {
                 case CTRL('c'):
                 case 'q':
@@ -215,6 +277,7 @@ main()
                         }
                         color =
                             color == PLAYER_BLACK ? PLAYER_WHITE : PLAYER_BLACK;
+                        winner = boardWinner(b);
                         break;
                 default:;
                 }
