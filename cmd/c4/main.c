@@ -106,23 +106,96 @@ boardWinner(struct board_t *b)
 
                         num_stones++;
 
-                        // only scan down
-                        if (ON_BOARD(r - 1, c) &&
-                            (boardGet(b, r - 1, c, &u), u == v)) {
-                                // we can skip as it is examined already, when
-                                // we deal with row r-1.
-                                continue;
-                        }
+                        // statically unroll to avoid unnecessary function calls
 
-                        for (k = 1; k < num_to_win; k++) {
-                                if (ON_BOARD(r + k, c) &&
-                                    (boardGet(b, r + k, c, &u), u == v)) {
+                        // only scan down
+                        {
+                                if (ON_BOARD(r - 1, c) &&
+                                    (boardGet(b, r - 1, c, &u), u == v)) {
+                                        // we can skip as it is examined
+                                        // already, when we deal with row r-1.
                                         continue;
                                 }
-                                break;
+
+                                for (k = 1; k < num_to_win; k++) {
+                                        if (ON_BOARD(r + k, c) &&
+                                            (boardGet(b, r + k, c, &u),
+                                             u == v)) {
+                                                continue;
+                                        }
+                                        break;
+                                }
+                                if (k == num_to_win) {
+                                        return v;
+                                }
                         }
-                        if (k == num_to_win) {
-                                return v;
+
+                        // only scan right
+                        {
+                                if (ON_BOARD(r, c - 1) &&
+                                    (boardGet(b, r, c - 1, &u), u == v)) {
+                                        // we can skip as it is examined
+                                        // already, when we deal with col c-1.
+                                        continue;
+                                }
+
+                                for (k = 1; k < num_to_win; k++) {
+                                        if (ON_BOARD(r, c + k) &&
+                                            (boardGet(b, r, c + k, &u),
+                                             u == v)) {
+                                                continue;
+                                        }
+                                        break;
+                                }
+                                if (k == num_to_win) {
+                                        return v;
+                                }
+                        }
+
+                        // only scan right down
+                        {
+                                if (ON_BOARD(r - 1, c - 1) &&
+                                    (boardGet(b, r - 1, c - 1, &u), u == v)) {
+                                        // we can skip as it is examined
+                                        // already, when we deal with row r-1,
+                                        // col c-1.
+                                        continue;
+                                }
+
+                                for (k = 1; k < num_to_win; k++) {
+                                        if (ON_BOARD(r + k, c + k) &&
+                                            (boardGet(b, r + k, c + k, &u),
+                                             u == v)) {
+                                                continue;
+                                        }
+                                        break;
+                                }
+                                if (k == num_to_win) {
+                                        return v;
+                                }
+                        }
+
+                        // only scan right up
+                        {
+                                if (ON_BOARD(r + 1, c - 1) &&
+                                    (boardGet(b, r + 1, c - 1, &u), u == v)) {
+                                        // we can skip as it is examined
+                                        // already, when we deal with row r+1,
+                                        // col c-1.
+                                        continue;
+                                }
+
+                                for (k = 1; k < num_to_win; k++) {
+                                        if (ON_BOARD(r - k, c + k) &&
+                                            (boardGet(b, r - k, c + k, &u),
+                                             u == v)) {
+                                                continue;
+                                        }
+                                        break;
+                                }
+                                if (k == num_to_win) {
+                                        return v;
+                                }
                         }
                 }
         }
