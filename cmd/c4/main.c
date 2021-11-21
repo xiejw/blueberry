@@ -433,6 +433,7 @@ main()
                         }
                         err = boardSet(b, row, col, color, 0);
                         if (OK != err) {
+                                err = errEmitNote("should never happen.")
                                 goto exit;
                         }
 
