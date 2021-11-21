@@ -309,10 +309,10 @@ main()
                                 assert(row_margin > 0);
 
                                 attron(COLOR_PAIR(COLOR_WINNER));
-                                mvprintw(
-                                    cur_row, 0,
-                                    " winner is: %d. press any key to quit",
-                                    winner);
+                                mvprintw(cur_row, 0,
+                                         " winner is: %d. press any key twice "
+                                         "to quit",
+                                         winner);
                                 attroff(COLOR_PAIR(COLOR_WINNER));
                         }
 
@@ -403,6 +403,7 @@ main()
                 ch = getch();
 
                 if (winner != PLAYER_NA) {
+                        getch();   // get another key to avoid accident.
                         ch = 'q';  // quit
                 }
 
