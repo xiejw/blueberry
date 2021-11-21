@@ -215,8 +215,9 @@ boardWinner(struct board_t *b)
 // colors
 // -----------------------------------------------------------------------------
 
-#define COLOR_WINNER 1
-#define COLOR_ERROR  2
+#define COLOR_WINNER     1
+#define COLOR_ERROR      2
+#define COLOR_PREV_STONE 3
 
 // -----------------------------------------------------------------------------
 // error messages
@@ -243,6 +244,7 @@ initScr()
         start_color();
         init_pair(COLOR_WINNER, COLOR_BLACK, COLOR_GREEN);
         init_pair(COLOR_ERROR, COLOR_BLACK, COLOR_RED);
+        init_pair(COLOR_PREV_STONE, COLOR_BLACK, COLOR_WHITE);
 }
 
 // finialize ncurses scr
@@ -266,15 +268,17 @@ main()
         const int col_margin = 15;  // left margin for board.
 
         // non-local vars. used across moves.
-        int           pos     = 3;             // current placement column.
-        enum player_t color   = PLAYER_BLACK;  // color for next stone.
-        int           winner  = PLAYER_NA;
-        char         *err_msg = NULL;
+        int           prev_row = -1;
+        int           prev_col = -1;
+        int           col      = 3;             // current placement column.
+        enum player_t color    = PLAYER_BLACK;  // color for next stone.
+        int           winner   = PLAYER_NA;
+        char         *err_msg  = NULL;
 
         // local vars. used in small context.
         error_t err;
         int     ch;   // input for getch().
-        int     row;  // track the current row to put, deduced by pos.
+        int     row;  // track the current row to put, deduced by col.
 
         initScr();
 
@@ -291,7 +295,13 @@ main()
 
                 // for all msgs.
                 //
-                // note: it will have sufficient margin to plot board. we will
+                // four possible types (exclusive)
+                // - winner
+                // - error message
+                // - info message
+                // - (default) absent
+                //
+                // note: It will have sufficient margin to plot board. We will
                 // not increase cur_row here.
                 {
                         if (winner != PLAYER_NA) {
@@ -336,12 +346,31 @@ main()
                                         goto exit;
                                 }
 
-                                if (v == 0) {
-                                        printw("   |");
-                                } else if (v > 0) {
-                                        printw(" x |");
+                                int set_color = prev_row == r && prev_col == c;
+
+                                if (set_color) {
+                                        printw(" ");
+
+                                        attron(COLOR_PAIR(COLOR_PREV_STONE));
+                                        assert(v != 0);
+                                        if (v == PLAYER_BLACK) {
+                                                printw("x");
+                                        } else {
+                                                assert(v == PLAYER_WHITE);
+                                                printw("o");
+                                        }
+                                        attroff(COLOR_PAIR(COLOR_PREV_STONE));
+
+                                        printw(" |");
                                 } else {
-                                        printw(" o |");
+                                        if (v == 0) {
+                                                printw("   |");
+                                        } else if (v == PLAYER_BLACK) {
+                                                printw(" x |");
+                                        } else {
+                                                assert(v == PLAYER_WHITE);
+                                                printw(" o |");
+                                        }
                                 }
                         }
                         mvprintw(cur_row++, col_margin, "+");
@@ -353,7 +382,7 @@ main()
                 // plot cursor point.
                 mvprintw(cur_row++, col_margin, " ");
                 for (int c = 0; c < b->cols; c++) {
-                        if (c == pos) {
+                        if (c == col) {
                                 printw(" ^  ");
                         } else {
                                 printw("    ");
@@ -361,7 +390,7 @@ main()
                 }
                 mvprintw(cur_row++, col_margin, " ");
                 for (int c = 0; c < b->cols; c++) {
-                        if (c == pos) {
+                        if (c == col) {
                                 printw(" |  ");
                         } else {
                                 printw("    ");
@@ -383,28 +412,32 @@ main()
                         refresh();
                         goto exit;
                 case KEY_LEFT:
-                        pos--;
-                        if (pos < 0) {
-                                pos = b->cols - 1;
+                        col--;
+                        if (col < 0) {
+                                col = b->cols - 1;
                         }
                         break;
                 case KEY_RIGHT:
-                        pos++;
-                        if (pos >= b->cols) {
-                                pos = 0;
+                        col++;
+                        if (col >= b->cols) {
+                                col = 0;
                         }
                         break;
                 case ' ':
-                        row = boardRowForCol(b, pos);
+                        row = boardRowForCol(b, col);
                         if (row == -1) {
                                 // will try again.
                                 err_msg = ERR_MSG_COL_FULL;
                                 break;
                         }
-                        err = boardSet(b, row, pos, color, 0);
+                        err = boardSet(b, row, col, color, 0);
                         if (OK != err) {
                                 goto exit;
                         }
+
+                        prev_row = row;
+                        prev_col = col;
+
                         color =
                             color == PLAYER_BLACK ? PLAYER_WHITE : PLAYER_BLACK;
                         winner = boardWinner(b);
