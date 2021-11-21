@@ -286,8 +286,6 @@ main()
                 int cur_row = 0;
                 int v;
 
-                clear();
-
                 // print instructions.
                 mvprintw(cur_row++, 0,
                          "Use <- or -> to select column and space to place new "
@@ -314,14 +312,18 @@ main()
                                          "to quit",
                                          winner);
                                 attroff(COLOR_PAIR(COLOR_WINNER));
-                        }
-
-                        if (err_msg != NULL) {
+                        } else if (err_msg != NULL) {
                                 assert(winner == PLAYER_NA);
                                 attron(COLOR_PAIR(COLOR_ERROR));
                                 mvprintw(cur_row, 0, " error: %s", err_msg);
                                 attroff(COLOR_PAIR(COLOR_ERROR));
                                 err_msg = NULL;
+                        } else {
+                                // this is an optimization. we clear the line
+                                // for error message, etc rather than clear the
+                                // whole screen.
+                                move(cur_row, 0);
+                                clrtoeol();
                         }
                 }
 
@@ -433,7 +435,7 @@ main()
                         }
                         err = boardSet(b, row, col, color, 0);
                         if (OK != err) {
-                                err = errEmitNote("should never happen.")
+                                err = errEmitNote("should never happen.");
                                 goto exit;
                         }
 
