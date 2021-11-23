@@ -327,35 +327,40 @@ finalizeScr()
 }
 
 // -----------------------------------------------------------------------------
-// main.
+// runner.
 // -----------------------------------------------------------------------------
 
-int
-main()
+// params:
+//
+//   - b: the board
+//   - bot_black: the bot for black player. NULL-able, not owned.
+//   - bot_white: the bot for white player. NULL-able, not owned.
+//
+//   - final_winner: if not NULL, set as enum player_t (NA means users cancel
+//   the game).
+//
+// return value:
+//   same as error_t.
+error_t
+runner(struct board_t *b, struct bot_t *bot_black, struct bot_t *bot_white,
+       int *final_winner)
 {
-        // a standard 6x7 board for connect 4.
-        struct board_t *b = boardNew(6, 7, 4, 1);
-
+        // static configurations.
         const int row_margin = 5;   // top margin for board.
         const int col_margin = 15;  // left margin for board.
-
-        // bots
-        struct bot_t *bot_black = NULL;
-        struct bot_t *bot_white =
-            botNewDeterministic("white", "deterministic bot is playing...");
 
         // non-local vars. used across moves.
         int           prev_row = -1;
         int           prev_col = -1;
         int           col      = 3;             // current placement column.
         enum player_t color    = PLAYER_BLACK;  // color for next stone.
-        int           winner   = PLAYER_NA;
-        char         *err_msg  = NULL;
+        int           winner   = PLAYER_NA;     // winner of the game.
+        char         *err_msg  = NULL;          // recoverable errors.
+        error_t       err      = OK;
 
         // local vars. used in small context.
-        error_t err;
-        int     ch;   // input for getch().
-        int     row;  // track the current row to put, deduced by col.
+        int ch;   // input for getch().
+        int row;  // track the current row to put, deduced by col.
 
         initScr();
 
@@ -493,6 +498,8 @@ main()
                 }
                 refresh();
 
+                // handle player/bot logic now.
+
                 struct bot_t *bot =
                     color == PLAYER_BLACK ? bot_black : bot_white;
 
@@ -528,8 +535,9 @@ main()
                             color == PLAYER_BLACK ? PLAYER_WHITE : PLAYER_BLACK;
                         winner = boardWinner(b);
 
-                        // we are done here. plot the winning move in next
-                        // iteration and quit.
+                        // we are done here. either, we found a winner and plot
+                        // the winning move in next iteration and quit, or we
+                        // start next iteration.
                         continue;
 
                 } else {
@@ -580,9 +588,33 @@ main()
                 }
         }
 
-        // exit routing.
 exit:
         finalizeScr();
+        if (final_winner != NULL) {
+                *final_winner = winner;
+        }
+        return err;
+}
+
+// -----------------------------------------------------------------------------
+// main.
+// -----------------------------------------------------------------------------
+
+int
+main()
+{
+        // a standard 6x7 board for connect 4.
+        struct board_t *b = boardNew(6, 7, 4, 1);
+
+        // bots
+        struct bot_t *bot_black = NULL;
+        struct bot_t *bot_white = botNewDeterministic(
+            "white", "deterministic bot is playing for 2 seconds...");
+
+        // run it.
+        error_t err = runner(b, bot_black, bot_white, /*final_winner=*/NULL);
+
+        // exit routing.
         boardFree(b);
 
         botFree(bot_black);
