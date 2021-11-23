@@ -232,17 +232,20 @@ boardWinner(struct board_t *b)
 // bots
 // -----------------------------------------------------------------------------
 
-typedef error_t (*bot_fn)(struct board_t *, int prev_r, int prev_c, int *r,
-                          int *c);
+typedef error_t (*bot_fn)(struct board_t *, void *data, int prev_r, int prev_c,
+                          int *r, int *c);
 
 struct bot_t {
-        sds_t  name;  // owned
-        sds_t  msg;   // owned
-        bot_fn bot_fn;
+        sds_t  name;              // owned
+        sds_t  msg;               // owned
+        bot_fn bot_fn;            // the bot fn.
+        void  *data;              // private data
+        void (*free_fn)(void *);  // free fn to call if not NULL;
 };
 
 static error_t
-bot_fn_deter(struct board_t *b, int prev_r, int prev_c, int *r, int *c)
+bot_fn_deter(struct board_t *b, void *data, int prev_r, int prev_c, int *r,
+             int *c)
 {
         const int cols = b->cols;
         int       row;
@@ -259,10 +262,11 @@ bot_fn_deter(struct board_t *b, int prev_r, int prev_c, int *r, int *c)
 }
 
 static error_t
-bot_fn_deter_sleep(struct board_t *b, int prev_r, int prev_c, int *r, int *c)
+bot_fn_deter_sleep(struct board_t *b, void *data, int prev_r, int prev_c,
+                   int *r, int *c)
 {
         sleep(2);  // sleep for 2 secs to mimic a game.
-        return bot_fn_deter(b, prev_r, prev_c, r, c);
+        return bot_fn_deter(b, data, prev_r, prev_c, r, c);
 }
 
 struct bot_t *
@@ -272,7 +276,24 @@ botNewDeterministic(const char *name, const char *msg)
         p->name         = sdsNew(name);
         p->msg          = sdsNew(msg);
         p->bot_fn       = bot_fn_deter_sleep;
+        p->data         = NULL;
+        p->free_fn      = NULL;
         return p;
+}
+
+void
+botFree(struct bot_t *b)
+{
+        if (b == NULL) return;
+
+        if (b->free_fn != NULL) {
+                b->free_fn(b);
+                return;
+        }
+        sdsFree(b->name);
+        sdsFree(b->msg);
+        free(b->data);
+        free(b);
 }
 
 // -----------------------------------------------------------------------------
@@ -484,7 +505,8 @@ main()
                 } else if (bot != NULL) {
                         assert(winner == PLAYER_NA);
                         int r, c;  // dont pollute the pos for the UI.
-                        err = bot->bot_fn(b, prev_row, prev_col, &r, &c);
+                        err = bot->bot_fn(b, bot->data, prev_row, prev_col, &r,
+                                          &c);
                         if (err) {
                                 err = errEmitNote(
                                     "unexpected error during playing bot.");
@@ -563,17 +585,8 @@ exit:
         finalizeScr();
         boardFree(b);
 
-        if (bot_black != NULL) {
-                sdsFree(bot_black->name);
-                sdsFree(bot_black->msg);
-                free(bot_black);
-        }
-
-        if (bot_white != NULL) {
-                sdsFree(bot_white->name);
-                sdsFree(bot_white->msg);
-                free(bot_white);
-        }
+        botFree(bot_black);
+        botFree(bot_white);
 
         if (err) {
                 errDump("unexpected error.");
