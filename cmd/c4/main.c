@@ -6,6 +6,7 @@
 #undef OK  // conflict with eva, same value.
 
 // eva
+#include <adt/sds.h>
 #include <base/error.h>
 
 // -----------------------------------------------------------------------------
@@ -218,12 +219,26 @@ boardWinner(struct board_t *b)
 #define COLOR_WINNER     1
 #define COLOR_ERROR      2
 #define COLOR_PREV_STONE 3
+#define COLOR_BOT        4
 
 // -----------------------------------------------------------------------------
 // error messages
 // -----------------------------------------------------------------------------
 
 #define ERR_MSG_COL_FULL "col is full, try again."
+
+// -----------------------------------------------------------------------------
+// bots
+// -----------------------------------------------------------------------------
+
+typedef error_t (*bot_fn)(struct board_t *, int prev_r, int prev_c, int *r,
+                          int *c);
+
+struct bot_t {
+        sds_t  name;  // owned
+        sds_t  msg;   // owned
+        bot_fn bot_fn;
+};
 
 // -----------------------------------------------------------------------------
 // helpers.
@@ -245,6 +260,7 @@ initScr()
         init_pair(COLOR_WINNER, COLOR_BLACK, COLOR_GREEN);
         init_pair(COLOR_ERROR, COLOR_BLACK, COLOR_RED);
         init_pair(COLOR_PREV_STONE, COLOR_BLACK, COLOR_WHITE);
+        init_pair(COLOR_BOT, COLOR_WHITE, COLOR_BLUE);
 }
 
 // finialize ncurses scr
@@ -266,6 +282,10 @@ main()
 
         const int row_margin = 5;   // top margin for board.
         const int col_margin = 15;  // left margin for board.
+
+        // bots
+        struct bot_t *bot_black = NULL;
+        struct bot_t *bot_white = NULL;
 
         // non-local vars. used across moves.
         int           prev_row = -1;
@@ -302,6 +322,12 @@ main()
                 // note: It will have sufficient margin to plot board. We will
                 // not increase cur_row here.
                 {
+                        // this is an optimization. we clear the line
+                        // for error message, etc rather than clear the
+                        // whole screen.
+                        move(cur_row, 0);
+                        clrtoeol();
+
                         if (winner != PLAYER_NA) {
                                 assert(err_msg == NULL);
                                 assert(row_margin > 0);
@@ -318,12 +344,22 @@ main()
                                 mvprintw(cur_row, 0, " error: %s", err_msg);
                                 attroff(COLOR_PAIR(COLOR_ERROR));
                                 err_msg = NULL;
+                        } else if (color == PLAYER_BLACK && bot_black != NULL) {
+                                assert(winner == PLAYER_NA);
+                                assert(err_msg == NULL);
+                                attron(COLOR_PAIR(COLOR_BOT));
+                                mvprintw(cur_row, 0, "%s: %s", bot_black->name,
+                                         bot_black->msg);
+                                attroff(COLOR_PAIR(COLOR_BOT));
+                        } else if (color == PLAYER_WHITE && bot_white != NULL) {
+                                assert(winner == PLAYER_NA);
+                                assert(err_msg == NULL);
+                                attron(COLOR_PAIR(COLOR_BOT));
+                                mvprintw(cur_row, 0, "%s: %s", bot_white->name,
+                                         bot_white->msg);
+                                attroff(COLOR_PAIR(COLOR_BOT));
                         } else {
-                                // this is an optimization. we clear the line
-                                // for error message, etc rather than clear the
-                                // whole screen.
-                                move(cur_row, 0);
-                                clrtoeol();
+                                // no action.
                         }
                 }
 
@@ -400,13 +436,47 @@ main()
                 }
                 refresh();
 
-                // keystroke events.
-
-                ch = getch();
+                struct bot_t *bot =
+                    color == PLAYER_BLACK ? bot_black : bot_white;
 
                 if (winner != PLAYER_NA) {
+                        // we have a winner. give users some time to check the
+                        // result and then quit.
+                        getch();
                         getch();   // get another key to avoid accident.
-                        ch = 'q';  // quit
+                        ch = 'q';  // quit. fall through.
+                } else if (bot != NULL) {
+                        assert(winner == PLAYER_NA);
+                        int r, c;  // dont pollute the pos for the UI.
+                        err = bot->bot_fn(b, prev_row, prev_col, &r, &c);
+                        if (err) {
+                                err = errEmitNote(
+                                    "unexpected error during playing bot.");
+                                goto exit;
+                        }
+
+                        err = boardSet(b, r, c, color, 0);
+                        if (OK != err) {
+                                err = errEmitNote(
+                                    "unexpected error during placing stone for "
+                                    "the bot.");
+                                goto exit;
+                        }
+
+                        prev_row = r;
+                        prev_col = c;
+
+                        color =
+                            color == PLAYER_BLACK ? PLAYER_WHITE : PLAYER_BLACK;
+                        winner = boardWinner(b);
+
+                        // we are done here. plot the winning move in next
+                        // iteration and quit.
+                        continue;
+
+                } else {
+                        // human, check keystroke.
+                        ch = getch();
                 }
 
                 switch (ch) {
@@ -435,7 +505,9 @@ main()
                         }
                         err = boardSet(b, row, col, color, 0);
                         if (OK != err) {
-                                err = errEmitNote("should never happen.");
+                                err = errEmitNote(
+                                    "unexpected error during placing stone for "
+                                    "the user.");
                                 goto exit;
                         }
 
@@ -454,6 +526,18 @@ main()
 exit:
         finalizeScr();
         boardFree(b);
+
+        if (bot_black != NULL) {
+                sdsFree(bot_black->name);
+                sdsFree(bot_black->msg);
+                free(bot_black);
+        }
+
+        if (bot_white != NULL) {
+                sdsFree(bot_white->name);
+                sdsFree(bot_white->msg);
+                free(bot_white);
+        }
 
         if (err) {
                 errDump("unexpected error.");
