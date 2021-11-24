@@ -202,37 +202,36 @@ runner(struct board_t *b, struct bot_t *bot_black, struct bot_t *bot_white,
                         }
                 }
 
-                // plot cursor point.
-                mvprintw(cur_row++, col_margin, " ");
-                for (int c = 0; c < b->cols; c++) {
-                        if (c == col) {
-                                printw(" ^  ");
-                        } else {
-                                printw("    ");
-                        }
-                }
-                mvprintw(cur_row++, col_margin, " ");
-                for (int c = 0; c < b->cols; c++) {
-                        if (c == col) {
-                                printw(" |  ");
-                        } else {
-                                printw("    ");
-                        }
-                }
-                refresh();
-
                 // handle player/bot logic now.
 
                 struct bot_t *bot =
                     color == PLAYER_BLACK ? bot_black : bot_white;
 
-                if (winner != PLAYER_NA) {
+                int found_winner = winner != PLAYER_NA;
+                int bot_is_playing = bot != NULL;
+
+
+#define CLEAR_CURSOR_POINT() \
+                do { \
+                move(cur_row++, col_margin); \
+                clrtoeol(); \
+                move(cur_row++, col_margin); \
+                clrtoeol(); \
+                refresh(); \
+                } \
+                while(0)
+
+                if (found_winner) {
+                        CLEAR_CURSOR_POINT();
+
                         // we have a winner. give users some time to check the
                         // result and then quit.
                         getch();
                         getch();   // get another key to avoid accident.
                         ch = 'q';  // quit. fall through.
-                } else if (bot != NULL) {
+                } else if (bot_is_playing) {
+                        CLEAR_CURSOR_POINT();
+
                         assert(winner == PLAYER_NA);
                         int r, c;  // dont pollute the pos for the UI.
                         err = bot->bot_fn(b, bot->data, prev_row, prev_col, &r,
@@ -264,7 +263,24 @@ runner(struct board_t *b, struct bot_t *bot_black, struct bot_t *bot_white,
                         continue;
 
                 } else {
-                        // human, check keystroke.
+                        // human, plot cursor point and check keystroke.
+                mvprintw(cur_row++, col_margin, " ");
+                for (int c = 0; c < b->cols; c++) {
+                        if (c == col) {
+                                printw(" ^  ");
+                        } else {
+                                printw("    ");
+                        }
+                }
+                mvprintw(cur_row++, col_margin, " ");
+                for (int c = 0; c < b->cols; c++) {
+                        if (c == col) {
+                                printw(" |  ");
+                        } else {
+                                printw("    ");
+                        }
+                }
+                refresh();
                         ch = getch();
                 }
 
