@@ -14,23 +14,20 @@ include ${EVA_PATH}/eva.mk
 
 SRC             =  src
 CMD             =  cmd
-#FMT_FOLDERS     =  ${SRC} ${CMD}  # required by eva.mk
+FMT_FOLDERS     =  ${SRC} ${CMD}  # required by eva.mk
 
-# remove the line above once the code is structured.
-# right now, we don't need it in prototyping stage.
-FMT_FOLDERS     =  ${CMD}  # required by eva.mk
 
 CFLAGS          += -I${SRC} -I${EVA_PATH}/src
 CFLAGS          += -DVM_SPEC -I${MLVM_PATH}/src -I${MLVM_PATH}/include
 LDFLAGS         += ${MLVM_LIB} ${EVA_LIB}
 
-CFLAGS          += -lncurses
+LDFLAGS         += -lncurses
 
 # ------------------------------------------------------------------------------
 # libs.
 # ------------------------------------------------------------------------------
 
-ALL_LIBS =
+ALL_LIBS         = ${BUILD}/bb_bot.o ${BUILD}/bb_board.o ${BUILD}/bb_runner.o
 
 # ------------------------------------------------------------------------------
 # actions.
@@ -39,6 +36,9 @@ ALL_LIBS =
 .DEFAULT_GOAL   = compile
 
 compile: ${BUILD} ${ALL_LIBS}
+
+${BUILD}/bb_%.o: ${SRC}/%.c
+	${EVA_CC} -o $@ -c $<
 
 # ------------------------------------------------------------------------------
 # cmds.
