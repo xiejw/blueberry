@@ -24,7 +24,7 @@ static error_t
 bot_fn_deter_sleep(struct board_t *b, void *data, int prev_r, int prev_c,
                    int *r, int *c)
 {
-        sleep(2);  // sleep for 2 secs to mimic a game.
+        sleep(1);  // sleep for 1 sec to mimic a game.
         return bot_fn_deter(b, data, prev_r, prev_c, r, c);
 }
 

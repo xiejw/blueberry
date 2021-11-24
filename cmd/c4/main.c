@@ -22,7 +22,7 @@ main()
         // bots
         struct bot_t *bot_black = NULL;
         struct bot_t *bot_white = botNewDeterministic(
-            "white", "deterministic bot is playing for 2 seconds...");
+            "white", "deterministic bot is playing for few seconds...");
 
         // run it.
         error_t err = runner(b, bot_black, bot_white, /*final_winner=*/NULL);

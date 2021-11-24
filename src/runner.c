@@ -21,6 +21,16 @@
 #define ERR_MSG_COL_FULL "col is full, try again."
 
 // -----------------------------------------------------------------------------
+// winner message.
+// -----------------------------------------------------------------------------
+
+#define WINNER_STR(c)                         \
+        ((c) == PLAYER_BLACK                  \
+             ? "black"                        \
+             : ((c) == PLAYER_WHITE ? "white" \
+                                    : (assert((c) == PLAYER_NA), "tie")))
+
+// -----------------------------------------------------------------------------
 // helpers.
 // -----------------------------------------------------------------------------
 
@@ -109,9 +119,9 @@ runner(struct board_t *b, struct bot_t *bot_black, struct bot_t *bot_white,
 
                                 attron(COLOR_PAIR(COLOR_WINNER));
                                 mvprintw(cur_row, 0,
-                                         " winner is: %d. press any key twice "
+                                         " winner is: %s. press any key twice "
                                          "to quit",
-                                         winner);
+                                         WINNER_STR(winner));
                                 attroff(COLOR_PAIR(COLOR_WINNER));
                         } else if (err_msg != NULL) {
                                 assert(winner == PLAYER_NA);
