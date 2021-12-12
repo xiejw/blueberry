@@ -18,13 +18,16 @@ struct bot_t {
         sds_t  name;              // owned
         sds_t  msg;               // owned
         bot_fn bot_fn;            // the bot fn.
-        void  *data;              // private data
+        void  *data;              // private data. passed to bot_fn.
         void (*free_fn)(void *);  // free fn to call if not NULL;
 };
 
 extern void botFree(struct bot_t *b);
 
 extern struct bot_t *botNewDeterministic(const char *name, const char *msg);
-extern struct bot_t *botNewMCTS(const char *name, const char *msg);
+extern struct bot_t *botNewRandom(const char *name, const char *msg,
+                                  uint64_t seed);
+extern struct bot_t *botNewMCTS(const char *name, const char *msg,
+                                uint64_t seed);
 
 #endif  // BB_BOT_H_
