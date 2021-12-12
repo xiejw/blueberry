@@ -17,7 +17,10 @@ int
 main()
 {
         // a standard 6x7 board for connect 4.
-        struct board_t *b = boardNew(6, 7, 4, 1);
+        // struct board_t *b = boardNew(6, 7, 4, 1);
+
+        // testing purpose 4x5 x 3, 1
+        struct board_t *b = boardNew(4, 5, 3, 1);
 
         // bots
         struct bot_t *bot_black = NULL;

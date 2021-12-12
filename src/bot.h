@@ -22,7 +22,9 @@ struct bot_t {
         void (*free_fn)(void *);  // free fn to call if not NULL;
 };
 
+extern void botFree(struct bot_t *b);
+
 extern struct bot_t *botNewDeterministic(const char *name, const char *msg);
-extern void          botFree(struct bot_t *b);
+extern struct bot_t *botNewMCTS(const char *name, const char *msg);
 
 #endif  // BB_BOT_H_

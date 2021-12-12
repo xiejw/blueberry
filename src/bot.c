@@ -2,6 +2,30 @@
 
 #include <unistd.h>  // sleep
 
+// -----------------------------------------------------------------------------
+// general public APis for all bots.
+// -----------------------------------------------------------------------------
+
+void
+botFree(struct bot_t *b)
+{
+        if (b == NULL) return;
+
+        if (b->free_fn != NULL) {
+                b->free_fn(b);
+                return;
+        }
+        sdsFree(b->name);
+        sdsFree(b->msg);
+        free(b->data);
+        free(b);
+}
+
+// -----------------------------------------------------------------------------
+// deterministic bot.
+// -----------------------------------------------------------------------------
+
+// always place a stone in the first legitimate col.
 static error_t
 bot_fn_deter(struct board_t *b, void *data, int prev_r, int prev_c, int *r,
              int *c)
@@ -40,17 +64,18 @@ botNewDeterministic(const char *name, const char *msg)
         return p;
 }
 
-void
-botFree(struct bot_t *b)
+// -----------------------------------------------------------------------------
+// monte carlo tree search (MTTS) bot.
+// -----------------------------------------------------------------------------
+struct bot_t *
+botNewMCTS(const char *name, const char *msg)
 {
-        if (b == NULL) return;
+        struct bot_t *p = malloc(sizeof(*p));
+        p->name         = sdsNew(name);
+        p->msg          = sdsNew(msg);
+        p->bot_fn       = NULL;  // TODO: replace here.
+        p->data         = NULL;
+        p->free_fn      = NULL;
 
-        if (b->free_fn != NULL) {
-                b->free_fn(b);
-                return;
-        }
-        sdsFree(b->name);
-        sdsFree(b->msg);
-        free(b->data);
-        free(b);
+        return p;
 }
