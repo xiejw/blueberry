@@ -34,7 +34,7 @@ botFree(struct bot_t *b)
 // deterministic bot.
 // -----------------------------------------------------------------------------
 
-// always place a stone in the first legitimate col.
+// bot_fn_deter always tries to place a stone in the first legitimate col.
 static error_t
 bot_fn_deter(struct board_t *b, void *data, int prev_r, int prev_c, int *r,
              int *c)
@@ -62,19 +62,19 @@ bot_fn_deter_sleep(struct board_t *b, void *data, int prev_r, int prev_c,
 }
 
 struct bot_t *
-botNewDeterministic(const char *name, const char *msg)
+botNewDeterministic(const char *name, const char *msg, int try_sleep)
 {
         struct bot_t *p = malloc(sizeof(*p));
         p->name         = sdsNew(name);
         p->msg          = sdsNew(msg);
-        p->bot_fn       = bot_fn_deter_sleep;
+        p->bot_fn       = try_sleep ? bot_fn_deter_sleep : bot_fn_deter;
         p->data         = NULL;
         p->free_fn      = NULL;
         return p;
 }
 
 // -----------------------------------------------------------------------------
-// random bot.
+// Random bot.
 // -----------------------------------------------------------------------------
 static void
 random_free_fn(void *bot_p)
@@ -85,10 +85,17 @@ random_free_fn(void *bot_p)
         rng64Free(p);
         b->data    = NULL;
         b->free_fn = NULL;
+
+        // after here, we call the standard free fn to free the rest of fields.
         botFree(b);
 }
 
-// always place a stone in random place.
+// bot_fn_random always tries to place a stone in a random column.
+//
+// The algorithrm is quite simple:
+//   - we advance the rng (stored as bot->data) and check its legitimacy.
+//   - if so, return the columen
+//   - if not, try again until we reach 1000 times.
 static error_t
 bot_fn_random(struct board_t *b, void *data, int prev_r, int prev_c, int *r,
               int *c)
@@ -126,7 +133,7 @@ botNewRandom(const char *name, const char *msg, uint64_t seed)
 }
 
 // -----------------------------------------------------------------------------
-// monte carlo tree search (MTTS) bot.
+// Monte Carlo Tree Search (MTTS) bot.
 // -----------------------------------------------------------------------------
 struct bot_t *
 botNewMCTS(const char *name, const char *msg, uint64_t seed)

@@ -26,7 +26,8 @@ struct bot_t {
 
 extern void botFree(struct bot_t *b);
 
-extern struct bot_t *botNewDeterministic(const char *name, const char *msg);
+extern struct bot_t *botNewDeterministic(const char *name, const char *msg,
+                                         int try_sleep);
 extern struct bot_t *botNewRandom(const char *name, const char *msg,
                                   uint64_t seed);
 extern struct bot_t *botNewMCTS(const char *name, const char *msg,

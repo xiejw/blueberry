@@ -26,8 +26,10 @@ main()
         // bots (NULL is human)
 
         struct bot_t *bot_black = botNewRandom("black", "random", /*seed=*/23);
+
         struct bot_t *bot_white = botNewDeterministic(
-            "white", "deterministic bot is playing for few seconds...");
+            "white", "deterministic bot is playing for few seconds...",
+            /*sleep=*/1);
 
         // runner starts.
         error_t err = runner(b, bot_black, bot_white, /*final_winner=*/NULL);
