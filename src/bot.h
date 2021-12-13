@@ -1,7 +1,7 @@
 #ifndef BB_BOT_H_
 #define BB_BOT_H_
 
-#include <stdint.h> // uint64_t
+#include <stdint.h>  // uint64_t
 
 // eva
 #include <adt/sds.h>

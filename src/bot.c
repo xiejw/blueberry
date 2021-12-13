@@ -15,10 +15,10 @@ botFree(struct bot_t *b)
         if (b == NULL) return;
 
         if (b->free_fn != NULL) {
-                // here the contract is: once free_fn is provided, it is
+                // Here the contract is: Once free_fn is provided, it is
                 // responsible not only for the data but also all other fields.
                 //
-                // this is useful to let free_fn to manage the name, msg
+                // This is useful to let free_fn to manage the name, msg
                 // differently.
                 b->free_fn(b);
                 return;
@@ -57,7 +57,7 @@ static error_t
 bot_fn_deter_sleep(struct board_t *b, void *data, int prev_r, int prev_c,
                    int *r, int *c)
 {
-        sleep(1);  // sleep for 1 sec to mimic a game.
+        sleep(1);  // sleep for 1 sec to mimic a game and give a pause.
         return bot_fn_deter(b, data, prev_r, prev_c, r, c);
 }
 
@@ -83,10 +83,11 @@ random_free_fn(void *bot_p)
         struct rng64_t *p = b->data;
 
         rng64Free(p);
+
+        // After here, we call the standard free fn to free the rest of fields.
+        // Before that, we reset the data and free_fn to ensure it is safe.
         b->data    = NULL;
         b->free_fn = NULL;
-
-        // after here, we call the standard free fn to free the rest of fields.
         botFree(b);
 }
 
@@ -133,7 +134,7 @@ botNewRandom(const char *name, const char *msg, uint64_t seed)
 }
 
 // -----------------------------------------------------------------------------
-// Monte Carlo Tree Search (MTTS) bot.
+// Monte Carlo Tree Search (MCTS) bot.
 // -----------------------------------------------------------------------------
 struct bot_t *
 botNewMCTS(const char *name, const char *msg, uint64_t seed)
